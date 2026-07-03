@@ -1,1 +1,1 @@
-Community engine
+Community assignment-engine
