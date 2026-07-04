@@ -6,15 +6,21 @@ PCGH is not a follow-for-follow platform, engagement farm, or reward-based engag
 
 Instead, PCGH operates as a community-powered content distribution ecosystem where creators purchase credits to distribute content across structured networks of real community members using intelligent group rotation, audience diversification, and natural engagement patterns.
 
-## Core Components
+##Core Components
 
-* Creator Discovery Engine
-* Audience Amplification Engine
-* Audience Distribution Engine
-* Group Rotation Engine
-* Credit Distribution System
-* Community Assignment Engine
-* Analytics & Growth Dashboard
+*Identity Engine
+*Community Engine
+*Creator Circle Engine
+*Credit Engine
+*Campaign Engine
+*Distribution Engine
+*Audience Matching Engine
+*Discovery Assignment Engine
+*Rotation Engine
+*Audience Amplification Engine
+*Reputation Engine
+*Analytics Engine
+*Community Profile Engine
 
 ## Key Principles
 
