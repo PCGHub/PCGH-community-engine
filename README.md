@@ -9,17 +9,29 @@ Instead, PCGH operates as a community-powered content distribution ecosystem whe
 Core Components
 
 Identity Engine
+
 Community Engine
+
 Creator Circle Engine
+
 Credit Engine
+
 Campaign Engine
+
 Distribution Engine
+
 Audience Matching Engine
+
 Discovery Assignment Engine
+
 Rotation Engine
+
 Audience Amplification Engine
+
 Reputation Engine
+
 Analytics Engine
+
 Community Profile Engine
 
 ## Key Principles
