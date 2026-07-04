@@ -1,6 +1,6 @@
 # PCGH Community Engine
 
-PCGH (Puricasie Creators Growth Hub) is a creator discovery and community amplification platform designed to help creators, businesses, brands, ministries, and organizations increase visibility through structured community distribution.
+PCGH (Puricasie Creators Growth Hub) is a creator discovery and audience amplification platform designed to help creators, businesses, brands, ministries, and organizations increase visibility through structured community distribution.
 
 PCGH is not a follow-for-follow platform, engagement farm, or reward-based engagement network.
 
@@ -9,7 +9,7 @@ Instead, PCGH operates as a community-powered content distribution ecosystem whe
 ## Core Components
 
 * Creator Discovery Engine
-* Community Amplification Engine
+* Audience Amplification Engine
 * Audience Distribution Engine
 * Group Rotation Engine
 * Credit Distribution System
