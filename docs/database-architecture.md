@@ -175,36 +175,138 @@ This layer prevents suspicious engagement patterns and enforces audience diversi
 
 ---
 
-# LAYER 5 — Reputation & Analytics
+# LAYER 5 — Reputation, Recognition & Analytics
 
 Status: ⏳ PENDING
 
 ## Purpose
 
-This layer calculates performance, reputation, and platform health.
+This layer calculates performance, reputation, recognition, and overall platform health.
 
-## Tables
+It provides:
 
-### Reputation
+* Member reputation scoring
+* Creator reputation scoring
+* Community reputation scoring
+* Performance recognition
+* Admin appreciation bonuses
+* Community health analytics
+* Creator performance analytics
+* Platform-wide analytics
+
+---
+
+## Reputation Tables
+
+### Member Reputation
 
 * member_reputation
+
+### Creator Reputation
+
 * creator_reputation
+
+### Community Reputation
+
 * community_reputation
 
-### Analytics
+---
+
+## Recognition Tables
+
+### Performance Bonus Events
+
+* performance_bonus
+
+### Performance Bonus Recipients
+
+* performance_bonus_members
+
+---
+
+## Analytics Tables
+
+### Analytics Events
 
 * analytics_events
+
+### Analytics Reports
+
 * analytics_reports
+
+---
 
 ## Responsibilities
 
+### Reputation Engine
+
 * Participation scoring
-* Reputation scoring
-* Community health
-* Creator performance
-* Platform analytics
+* Activity scoring
+* Consistency scoring
+* Authenticity scoring
+* Community reputation scoring
+
+### Recognition Engine
+
+* Community appreciation bonuses
+* Creator appreciation bonuses
+* Seasonal bonuses
+* Event bonuses
+* Manual admin recognition
+* Recognition badges
+
+### Analytics Engine
+
+* Community performance analytics
+* Creator performance analytics
+* Audience amplification analytics
+* Platform health analytics
+* Growth analytics
 
 ---
+
+## Example Recognition Flow
+
+```text
+Community M001
+        ↓
+Participation: 95%
+        ↓
+Admin decides to recognize performance
+        ↓
+Create Performance Bonus Event
+        ↓
+Award 1000 Bonus Credits
+        ↓
+100 Members Receive Bonus Credits
+```
+
+---
+
+## Example Tables
+
+### performance_bonus
+
+```text
+id
+community_id
+issued_by
+bonus_amount
+reason
+created_at
+```
+
+### performance_bonus_members
+
+```text
+id
+bonus_id
+user_id
+amount
+status
+created_at
+```
+
 
 # LAYER 6 — Feature Management & Platform Control
 
