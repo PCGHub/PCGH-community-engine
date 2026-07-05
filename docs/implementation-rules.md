@@ -438,7 +438,7 @@ docs/*.md
 
 Product Owner:
 
-* Victor Nonso Fidelis (PCGH)
+* Victor Nonso Fidelis (PCGH Founder)
 
 Chief Architect:
 
