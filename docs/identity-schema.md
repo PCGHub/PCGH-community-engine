@@ -50,9 +50,10 @@ identity.creator_circle_members
 
 identity.member_communities
 
+identity.member_community_members
+
 identity.community_member_history
 
-identity.member_community_members
 
 ```
 
