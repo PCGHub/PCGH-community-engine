@@ -81,6 +81,9 @@ Stores discovery opportunities created from campaigns.
 ## Structure
 
 ```sql id="g2r8mv"
+## Structure
+
+```sql
 discovery.discovery_opportunities
 ---------------------------------
 
@@ -115,11 +118,13 @@ expires_at TIMESTAMP
 created_at TIMESTAMP
 
 updated_at TIMESTAMP
+```
 
-Add immediately below the structure:
+---
 
-Campaign Types
+## Campaign Types
 
+```text
 creator
 
 business
@@ -276,7 +281,7 @@ Tracks discovery opportunities delivered to members.
 
 ## Structure
 
-```sql id="a1m8qw"
+```sql
 discovery.member_assignments
 ----------------------------
 
@@ -306,9 +311,13 @@ ignored_at TIMESTAMP
 completed_at TIMESTAMP
 
 status VARCHAR(50)
+```
 
-Replace the Status section with:
+---
 
+## Status
+
+```text
 assigned
 
 viewed
@@ -324,32 +333,13 @@ ignored
 completed
 
 expired
-
----
-
-## Status
-
-```text id="v5r2mx"
-assigned
-
-viewed
-
-visited
-
-shared
-
-saved
-
-completed
-
-expired
 ```
 
 ---
 
 ## Example
 
-```text id="z8m4pv"
+```text
 Victor
 
 Opportunity:
@@ -363,7 +353,7 @@ Viewed
 
 ## Recommended Indexes
 
-```sql id="g6k9qw"
+```sql
 INDEX member_assignment_user_idx(user_id)
 
 INDEX member_assignment_community_idx(community_id)
@@ -378,20 +368,6 @@ INDEX member_assignment_status_idx(status)
 # TABLE 4
 
 # discovery.assignment_history
-
-received
-
-viewed
-
-visited
-
-shared
-
-saved
-
-ignored
-
-completed
 
 ## Purpose
 
@@ -430,6 +406,9 @@ created_at TIMESTAMP
 ## Actions
 
 ```text id="q4m7px"
+## Actions
+
+```text
 received
 
 viewed
@@ -440,8 +419,11 @@ shared
 
 saved
 
+ignored
+
 completed
 ```
+
 
 ---
 
@@ -584,7 +566,7 @@ View everything
 
 # Discovery Schema Status
 
-```text id="m5r7px"
+```text
 discovery schema
 
 tables:
@@ -595,4 +577,7 @@ completeness:
 
 status:
 FINAL
+```
+
 This schema represents the core intellectual property of the PCGH platform.
+
