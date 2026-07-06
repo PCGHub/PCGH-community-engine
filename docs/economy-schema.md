@@ -595,6 +595,6 @@ economy schema
 tables:
 5
 
-status:
-LOCKED
+completeness:
+100%
 ```
