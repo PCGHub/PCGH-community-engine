@@ -91,6 +91,8 @@ No records are ever deleted.
 
 ## Structure
 
+## Structure
+
 ```sql id="k3m9rx"
 protection.rotation_history
 ---------------------------
@@ -106,6 +108,8 @@ REFERENCES economy.campaigns(id)
 community_id UUID
 REFERENCES identity.member_communities(id)
 
+rotation_reason VARCHAR(100)
+
 distributed_at TIMESTAMP
 
 cooldown_until TIMESTAMP
@@ -113,11 +117,25 @@ cooldown_until TIMESTAMP
 created_at TIMESTAMP
 ```
 
+
+## Rotation Reasons
+
+```text id="rot_reason"
+campaign_distribution
+
+manual_distribution
+
+bonus_distribution
+
+retry_distribution
+
+administrative_override
+```
+
 ---
 
 ## Example
 
-```text id="t8r2mv"
 Creator:
 Victor
 
@@ -126,6 +144,9 @@ CMP0001
 
 Community:
 M014
+
+Reason:
+campaign_distribution
 
 Distributed:
 2026-07-01
@@ -309,6 +330,8 @@ Allows communities to be excluded from creator distribution.
 
 ## Structure
 
+## Structure
+
 ```sql id="r8k4qw"
 protection.community_exclusions
 -------------------------------
@@ -323,10 +346,28 @@ REFERENCES identity.member_communities(id)
 
 reason TEXT
 
+expires_at TIMESTAMP NULL
+
 created_by UUID
 REFERENCES identity.users(id)
 
 created_at TIMESTAMP
+```
+
+
+## Exclusion Types
+
+```text
+Permanent Exclusion
+
+Temporary Exclusion
+```
+
+Example:
+
+```text
+Exclude Community M014
+for 60 days
 ```
 
 ---
@@ -338,13 +379,14 @@ Creator:
 Victor
 
 Excluded:
-
 M014
 
 Reason:
 Manual exclusion
-```
 
+Expires:
+2026-09-01
+```
 ---
 
 ## Recommended Indexes
@@ -376,6 +418,8 @@ This information helps administrators decide:
 
 ## Structure
 
+## Structure
+
 ```sql id="q7m2pw"
 protection.community_performance_history
 ----------------------------------------
@@ -396,6 +440,8 @@ members_shared INTEGER
 
 members_saved INTEGER
 
+engagement_rate DECIMAL(5,2)
+
 performance_score DECIMAL(5,2)
 
 recorded_at TIMESTAMP
@@ -405,7 +451,7 @@ recorded_at TIMESTAMP
 
 ## Example
 
-```text id="v3r8mx"
+```text
 Community:
 M014
 
@@ -421,9 +467,13 @@ Shared:
 Saved:
 13
 
+Engagement:
+35.00
+
 Performance:
 95.00
 ```
+
 
 ---
 
@@ -517,6 +567,10 @@ protection schema
 tables:
 5
 
+completeness:
+100%
+
 status:
-LOCKED
+FINAL
 ```
+
