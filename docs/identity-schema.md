@@ -51,6 +51,8 @@ identity.creator_circle_members
 identity.member_communities
 
 identity.member_community_members
+
+identity.community_member_history
 ```
 
 ---
@@ -538,3 +540,155 @@ LOCKED
 ```
 
 This schema becomes the foundational dependency for all PCGH schemas.
+
+---
+
+# TABLE 7
+
+# identity.community_member_history
+
+## Purpose
+
+Stores the complete historical record of member community assignments.
+
+No records are ever deleted.
+
+This table enables:
+
+* community reassignment history
+* performance tracking
+* fraud detection
+* community optimization
+* rotation analysis
+* historical analytics
+
+---
+
+## Structure
+
+```sql
+identity.community_member_history
+---------------------------------
+
+id UUID PRIMARY KEY
+
+user_id UUID
+REFERENCES identity.users(id)
+
+community_id UUID
+REFERENCES identity.member_communities(id)
+
+assignment_type VARCHAR(50)
+
+assigned_by UUID
+REFERENCES identity.users(id)
+
+joined_at TIMESTAMP
+
+left_at TIMESTAMP NULL
+
+reason TEXT
+
+created_at TIMESTAMP
+```
+
+---
+
+## Assignment Types
+
+```text
+automatic
+
+manual
+
+migration
+
+administrative
+```
+
+---
+
+## Example
+
+```text
+Victor
+
+Community:
+M014
+
+Joined:
+2026-07-01
+
+Left:
+2026-07-31
+
+Reason:
+Community rotation
+```
+
+---
+
+## Example History
+
+```text
+Victor
+
+M014
+     ↓
+M021
+     ↓
+M076
+     ↓
+M101
+```
+
+---
+
+## Recommended Indexes
+
+```sql
+INDEX community_history_user_idx(user_id)
+
+INDEX community_history_community_idx(community_id)
+
+INDEX community_history_joined_idx(joined_at)
+
+INDEX community_history_left_idx(left_at)
+```
+
+---
+
+## Business Rules
+
+```text
+Community history
+is immutable.
+
+Records are never updated.
+
+Records are never deleted.
+
+Community movement
+creates a new history record.
+```
+
+---
+
+## Analytics Usage
+
+This table supports:
+
+```text
+Community effectiveness
+
+Member participation history
+
+Rotation optimization
+
+Fraud detection
+
+Community reassignment analysis
+
+Future AI optimization
+```
+
