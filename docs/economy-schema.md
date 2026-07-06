@@ -247,6 +247,8 @@ campaign_code VARCHAR(30) UNIQUE
 creator_id UUID
 REFERENCES identity.users(id)
 
+campaign_type VARCHAR(50)
+
 title VARCHAR(255)
 
 description TEXT
@@ -264,6 +266,32 @@ duration_hours INTEGER
 created_at TIMESTAMP
 
 updated_at TIMESTAMP
+```
+
+---
+
+## Campaign Types
+
+```text id="g8r4mx"
+creator
+
+business
+
+ministry
+
+organization
+
+educational
+```
+
+---
+
+## Rule
+
+```text id="x4m8qw"
+One campaign
+belongs to
+one campaign type
 ```
 
 ---
@@ -289,6 +317,9 @@ archived
 ```text id="f4r8pn"
 CMP0001
 
+Type:
+creator
+
 Creator:
 Victor
 
@@ -306,10 +337,13 @@ Duration:
 ```sql id="z9k5mx"
 INDEX campaigns_creator_idx(creator_id)
 
+INDEX campaigns_type_idx(campaign_type)
+
 INDEX campaigns_status_idx(status)
 
 INDEX campaigns_created_idx(created_at)
 ```
+
 
 ---
 
