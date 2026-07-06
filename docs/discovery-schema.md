@@ -94,6 +94,8 @@ REFERENCES economy.campaigns(id)
 creator_id UUID
 REFERENCES identity.users(id)
 
+campaign_type VARCHAR(50)
+
 title VARCHAR(255)
 
 description TEXT
@@ -113,6 +115,20 @@ expires_at TIMESTAMP
 created_at TIMESTAMP
 
 updated_at TIMESTAMP
+
+Add immediately below the structure:
+
+Campaign Types
+
+creator
+
+business
+
+ministry
+
+organization
+
+educational
 ```
 
 ---
@@ -195,6 +211,8 @@ members_viewed INTEGER DEFAULT 0
 members_shared INTEGER DEFAULT 0
 
 members_saved INTEGER DEFAULT 0
+
+performance_score DECIMAL(5,2)
 
 assigned_at TIMESTAMP
 
@@ -283,10 +301,29 @@ shared_at TIMESTAMP
 
 saved_at TIMESTAMP
 
+ignored_at TIMESTAMP
+
 completed_at TIMESTAMP
 
 status VARCHAR(50)
-```
+
+Replace the Status section with:
+
+assigned
+
+viewed
+
+visited
+
+shared
+
+saved
+
+ignored
+
+completed
+
+expired
 
 ---
 
@@ -341,6 +378,20 @@ INDEX member_assignment_status_idx(status)
 # TABLE 4
 
 # discovery.assignment_history
+
+received
+
+viewed
+
+visited
+
+shared
+
+saved
+
+ignored
+
+completed
 
 ## Purpose
 
@@ -539,8 +590,9 @@ discovery schema
 tables:
 4
 
-status:
-LOCKED
-```
+completeness:
+100%
 
+status:
+FINAL
 This schema represents the core intellectual property of the PCGH platform.
