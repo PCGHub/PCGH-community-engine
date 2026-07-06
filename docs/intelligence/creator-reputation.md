@@ -62,6 +62,8 @@ lifetime_reputation DECIMAL(10,2) DEFAULT 100.00
 
 trust_level VARCHAR(30)
 
+creator_tier VARCHAR(30)
+
 campaigns_created INTEGER DEFAULT 0
 
 campaigns_completed INTEGER DEFAULT 0
@@ -103,6 +105,22 @@ Elite
 
 ---
 
+# Creator Tiers
+
+```text id="creator_tiers"
+Standard
+
+Verified
+
+Partner
+
+Premium
+
+Enterprise
+```
+
+---
+
 # Reputation Philosophy
 
 Creators gain reputation through:
@@ -132,6 +150,24 @@ Policy violations
 
 Extended inactivity
 ```
+
+---
+
+# Creator Tier Philosophy
+
+Creator Tier represents the creator's business classification within the PCGH ecosystem.
+
+Unlike Trust Level, Creator Tier is not calculated from platform behavior alone.
+
+It may be be determined by:
+
+* Subscription plan
+* Account verification
+* Partnership status
+* Enterprise agreements
+* Administrative approval
+
+A creator's Trust Level and Creator Tier are independent values.
 
 ---
 
@@ -180,6 +216,9 @@ Lifetime Reputation:
 Trust:
 Platinum
 
+Creator Tier:
+Verified
+
 Campaigns Created:
 84
 
@@ -212,6 +251,8 @@ INDEX creator_reputation_lifetime_idx(lifetime_reputation)
 
 INDEX creator_reputation_trust_idx(trust_level)
 
+INDEX creator_reputation_tier_idx(creator_tier)
+
 INDEX creator_reputation_last_campaign_idx(last_campaign_at)
 ```
 
@@ -239,6 +280,10 @@ user_badges
 creator_reputation
         ↓
 rankings
+
+creator_reputation
+        ↓
+performance_bonuses
 ```
 
 ---
