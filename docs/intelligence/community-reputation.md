@@ -40,6 +40,7 @@ The table measures:
 * Community performance
 * Discovery effectiveness
 * Member participation
+* Community health
 * Historical consistency
 * Long-term community reputation
 
@@ -60,9 +61,9 @@ reputation_score DECIMAL(8,2) DEFAULT 100.00
 
 lifetime_reputation DECIMAL(10,2) DEFAULT 100.00
 
-community_tier VARCHAR(30)
-
 trust_level VARCHAR(30)
+
+community_tier VARCHAR(30)
 
 campaigns_received INTEGER DEFAULT 0
 
@@ -75,6 +76,8 @@ active_members INTEGER DEFAULT 0
 average_participation_rate DECIMAL(5,2)
 
 average_performance_score DECIMAL(5,2)
+
+health_score DECIMAL(5,2)
 
 consistency_score DECIMAL(5,2)
 
@@ -173,6 +176,25 @@ Community Tier and Trust Level are independent values.
 
 ---
 
+# Community Health Philosophy
+
+Community Health represents the overall sustainability of a community.
+
+Unlike Performance Score, Health Score evaluates long-term community quality.
+
+Health Score is influenced by:
+
+* Active member participation
+* Consistency over time
+* Member retention
+* Ignore rate
+* Community trust
+* Platform integrity
+
+A community may have a high Performance Score but a lower Health Score if long-term sustainability declines.
+
+---
+
 # Lifetime Reputation
 
 Lifetime reputation never decreases.
@@ -239,6 +261,9 @@ Participation Rate:
 Performance:
 95.60%
 
+Health:
+97.20%
+
 Consistency:
 96.20%
 ```
@@ -257,6 +282,8 @@ INDEX community_reputation_lifetime_idx(lifetime_reputation)
 INDEX community_reputation_trust_idx(trust_level)
 
 INDEX community_reputation_tier_idx(community_tier)
+
+INDEX community_reputation_health_idx(health_score)
 
 INDEX community_reputation_last_campaign_idx(last_campaign_at)
 ```
