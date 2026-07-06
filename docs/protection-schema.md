@@ -91,8 +91,6 @@ No records are ever deleted.
 
 ## Structure
 
-## Structure
-
 ```sql id="k3m9rx"
 protection.rotation_history
 ---------------------------
@@ -118,7 +116,7 @@ created_at TIMESTAMP
 ```
 
 
-## Rotation Reasons
+## Allowed Rotation Reasons
 
 ```text id="rot_reason"
 campaign_distribution
@@ -136,6 +134,7 @@ administrative_override
 
 ## Example
 
+```text id="t8r2mv"
 Creator:
 Victor
 
@@ -154,7 +153,6 @@ Distributed:
 Cooldown:
 2026-07-31
 ```
-
 ---
 
 ## Recommended Indexes
@@ -330,8 +328,6 @@ Allows communities to be excluded from creator distribution.
 
 ## Structure
 
-## Structure
-
 ```sql id="r8k4qw"
 protection.community_exclusions
 -------------------------------
@@ -357,18 +353,20 @@ created_at TIMESTAMP
 
 ## Exclusion Types
 
-```text
+```text id="exclusion_types"
 Permanent Exclusion
 
 Temporary Exclusion
 ```
 
+
 Example:
 
-```text
+```text id="temporary_exclusion_example"
 Exclude Community M014
 for 60 days
 ```
+
 
 ---
 
@@ -418,8 +416,6 @@ This information helps administrators decide:
 
 ## Structure
 
-## Structure
-
 ```sql id="q7m2pw"
 protection.community_performance_history
 ----------------------------------------
@@ -451,7 +447,7 @@ recorded_at TIMESTAMP
 
 ## Example
 
-```text
+```text id="performance_example"
 Community:
 M014
 
@@ -473,7 +469,6 @@ Engagement:
 Performance:
 95.00
 ```
-
 
 ---
 
