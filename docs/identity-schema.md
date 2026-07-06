@@ -50,9 +50,10 @@ identity.creator_circle_members
 
 identity.member_communities
 
+identity.community_member_history
+
 identity.member_community_members
 
-identity.community_member_history
 ```
 
 ---
@@ -428,123 +429,6 @@ INDEX member_communities_member_count_idx(member_count)
 
 # TABLE 6
 
-# identity.member_community_members
-
-## Purpose
-
-Links members to communities.
-
----
-
-## Structure
-
-```sql id="m6r7qw"
-identity.member_community_members
----------------------------------
-
-id UUID PRIMARY KEY
-
-community_id UUID
-REFERENCES identity.member_communities(id)
-
-user_id UUID
-REFERENCES identity.users(id)
-
-joined_at TIMESTAMP
-```
-
----
-
-## Constraint
-
-```sql id="g9m2pv"
-UNIQUE(user_id)
-```
-
----
-
-## Recommended Indexes
-
-```sql id="a3r8mx"
-INDEX member_community_members_community_idx(community_id)
-
-INDEX member_community_members_user_idx(user_id)
-```
-
----
-
-# Identity Relationships
-
-```text id="b7k4qw"
-auth.users
-      ↓
-identity.users
-      ↓
-identity.user_roles
-
-identity.users
-      ↓
-identity.creator_circle_members
-      ↓
-identity.creator_circles
-
-identity.users
-      ↓
-identity.member_community_members
-      ↓
-identity.member_communities
-```
-
----
-
-# RLS Philosophy
-
-Users may:
-
-```text id="z5m8pv"
-View own profile
-
-Update own profile
-```
-
-Creators may:
-
-```text id="t2r7mx"
-View own creator circle
-```
-
-Members may:
-
-```text id="y4k9qw"
-View own community
-```
-
-Administrators may:
-
-```text id="c6m3pv"
-View and manage everything
-```
-
----
-
-# Identity Schema Status
-
-```text id="w1r8mx"
-identity schema
-
-tables:
-6
-
-status:
-LOCKED
-```
-
-This schema becomes the foundational dependency for all PCGH schemas.
-
----
-
-# TABLE 7
-
 # identity.community_member_history
 
 ## Purpose
@@ -692,3 +576,122 @@ Community reassignment analysis
 Future AI optimization
 ```
 
+
+# TABLE 7
+
+# identity.member_community_members
+
+## Purpose
+
+Links members to communities.
+
+---
+
+## Structure
+
+```sql id="m6r7qw"
+identity.member_community_members
+---------------------------------
+
+id UUID PRIMARY KEY
+
+community_id UUID
+REFERENCES identity.member_communities(id)
+
+user_id UUID
+REFERENCES identity.users(id)
+
+joined_at TIMESTAMP
+```
+
+---
+
+## Constraint
+
+```sql id="g9m2pv"
+UNIQUE(user_id)
+```
+
+---
+
+## Recommended Indexes
+
+```sql id="a3r8mx"
+INDEX member_community_members_community_idx(community_id)
+
+INDEX member_community_members_user_idx(user_id)
+```
+
+---
+
+# Identity Relationships
+
+```text id="b7k4qw"
+auth.users
+      ↓
+identity.users
+      ↓
+identity.user_roles
+
+identity.users
+      ↓
+identity.creator_circle_members
+      ↓
+identity.creator_circles
+
+identity.users
+      ↓
+identity.member_community_members
+      ↓
+identity.member_communities
+      ↓
+identity.community_member_history
+```
+
+---
+
+# RLS Philosophy
+
+Users may:
+
+```text id="z5m8pv"
+View own profile
+
+Update own profile
+```
+
+Creators may:
+
+```text id="t2r7mx"
+View own creator circle
+```
+
+Members may:
+
+```text id="y4k9qw"
+View own community
+```
+
+Administrators may:
+
+```text id="c6m3pv"
+View and manage everything
+```
+
+---
+
+# Identity Schema Status
+
+```text id="w1r8mx"
+identity schema
+
+tables:
+7
+
+status:
+LOCKED
+```
+
+This schema becomes the foundational dependency for all PCGH schemas.
+
+---
