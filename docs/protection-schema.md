@@ -522,6 +522,34 @@ Review performance history
 
 ---
 
+# RLS Philosophy
+
+Administrators may:
+
+```text id="rls_admin"
+View and manage every protection table
+```
+
+Creators may:
+
+```text id="rls_creator"
+View own community exclusions
+```
+
+Creators may not:
+
+```text id="rls_creator_restrict"
+Insert exclusions
+
+Update exclusions
+
+Delete exclusions
+```
+
+No other table in this schema grants any creator- or member-facing access. This schema exists to prevent gamed or artificial exposure, so rotation history, cooldowns, and performance history remain visible to administrators only.
+
+---
+
 # Future Features
 
 The following remain disabled:

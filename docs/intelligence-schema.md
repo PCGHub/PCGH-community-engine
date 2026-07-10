@@ -53,13 +53,15 @@ intelligence.creator_reputation
 
 intelligence.community_reputation
 
-intelligence.creator_badges
+intelligence.badges
 
-intelligence.community_badges
+intelligence.user_badges
 
 intelligence.performance_bonus
 
 intelligence.performance_bonus_members
+
+intelligence.achievement_history
 ```
 
 ---
@@ -286,32 +288,35 @@ INDEX community_rep_score_idx(reputation_score)
 
 # TABLE 4
 
-# intelligence.creator_badges
+# intelligence.badges
 
 ## Purpose
 
-Stores creator recognition badges.
+Stores the badge catalog: reusable badge definitions, decoupled from who holds them. `user_badges` references this table rather than duplicating badge information.
 
 ---
 
 ## Structure
 
-```sql id="n4r8mx"
-intelligence.creator_badges
----------------------------
+```sql id="k8m2rx"
+intelligence.badges
+-------------------
 
 id UUID PRIMARY KEY
 
-user_id UUID
-REFERENCES identity.users(id)
+badge_name VARCHAR(100) UNIQUE
 
-badge_name VARCHAR(100)
+description TEXT
 
-badge_type VARCHAR(100)
+icon_url TEXT
 
-awarded_at TIMESTAMP
+category VARCHAR(100)
 
-expires_at TIMESTAMP NULL
+criteria TEXT
+
+created_at TIMESTAMP
+
+updated_at TIMESTAMP
 ```
 
 ---
@@ -326,55 +331,7 @@ Trusted Creator
 Top Amplified Creator
 
 Consistent Creator
-```
 
----
-
-## Recommended Indexes
-
-```sql id="h2m7pv"
-INDEX creator_badges_user_idx(user_id)
-
-INDEX creator_badges_name_idx(badge_name)
-```
-
----
-
-# TABLE 5
-
-# intelligence.community_badges
-
-## Purpose
-
-Stores community recognition badges.
-
----
-
-## Structure
-
-```sql id="b5r9qx"
-intelligence.community_badges
------------------------------
-
-id UUID PRIMARY KEY
-
-community_id UUID
-REFERENCES identity.member_communities(id)
-
-badge_name VARCHAR(100)
-
-badge_type VARCHAR(100)
-
-awarded_at TIMESTAMP
-
-expires_at TIMESTAMP NULL
-```
-
----
-
-## Example Badges
-
-```text id="q3m8pv"
 Elite Community
 
 Trusted Community
@@ -386,12 +343,61 @@ Consistent Community
 
 ---
 
+## Constraint
+
+```sql id="p4k9mx"
+UNIQUE(badge_name)
+```
+
+---
+
+## Recommended Indexes
+
+```sql id="h2m7pv"
+INDEX badges_name_idx(badge_name)
+
+INDEX badges_category_idx(category)
+```
+
+---
+
+# TABLE 5
+
+# intelligence.user_badges
+
+## Purpose
+
+Stores badges awarded to users. Badges belong to users, not roles: a single table covers every badge holder, whether the user is acting as a creator, a member, or both. References `intelligence.badges` for the badge definition rather than duplicating badge information.
+
+---
+
+## Structure
+
+```sql id="b5r9qx"
+intelligence.user_badges
+------------------------
+
+id UUID PRIMARY KEY
+
+user_id UUID
+REFERENCES identity.users(id)
+
+badge_id UUID
+REFERENCES intelligence.badges(id)
+
+awarded_at TIMESTAMP
+
+expires_at TIMESTAMP NULL
+```
+
+---
+
 ## Recommended Indexes
 
 ```sql id="v7r2mx"
-INDEX community_badges_idx(community_id)
+INDEX user_badges_user_idx(user_id)
 
-INDEX community_badges_name_idx(badge_name)
+INDEX user_badges_badge_idx(badge_id)
 ```
 
 ---
@@ -521,6 +527,91 @@ INDEX performance_bonus_bonus_idx(bonus_id)
 
 ---
 
+# TABLE 8
+
+# intelligence.achievement_history
+
+## Purpose
+
+Provides a permanent, append-only history of every reputation milestone, badge award, achievement, and recognition event on the platform.
+
+No history is ever deleted.
+
+---
+
+## Structure
+
+```sql id="w3m7qx"
+intelligence.achievement_history
+--------------------------------
+
+id UUID PRIMARY KEY
+
+user_id UUID
+REFERENCES identity.users(id)
+
+community_id UUID
+REFERENCES identity.member_communities(id)
+
+event_type VARCHAR(50)
+
+reference_id UUID
+
+description TEXT
+
+metadata JSONB
+
+created_at TIMESTAMP
+```
+
+---
+
+## Event Types
+
+```text id="ach_event_types"
+reputation_milestone
+
+badge_award
+
+achievement
+
+recognition_event
+```
+
+---
+
+## Example
+
+```text id="u4m8qx"
+User:
+Victor
+
+Event:
+badge_award
+
+Reference:
+Elite Creator
+
+Recorded:
+2026-07-08
+```
+
+---
+
+## Recommended Indexes
+
+```sql id="n2r8pv"
+INDEX achievement_history_user_idx(user_id)
+
+INDEX achievement_history_community_idx(community_id)
+
+INDEX achievement_history_event_type_idx(event_type)
+
+INDEX achievement_history_created_idx(created_at)
+```
+
+---
+
 # Intelligence Relationships
 
 ```text id="f6r8mx"
@@ -535,12 +626,23 @@ creator_reputation
 member_communities
         ↓
 community_reputation
+
+badges
         ↓
-community_badges
+user_badges
+        ↓
+identity.users
+
+member_communities
         ↓
 performance_bonus
         ↓
 performance_bonus_members
+
+member_reputation, creator_reputation, community_reputation,
+user_badges, performance_bonus, performance_bonus_members
+        ↓
+achievement_history
 ```
 
 ---
@@ -571,9 +673,11 @@ Task Rewards
 Engagement Farming
 ```
 
+Badges belong to users, not roles. A single badge catalog (`badges`) and a single award table (`user_badges`) recognize any user -- acting as creator, member, or both -- without duplicating badge information per role. Every milestone, award, achievement, and recognition event is permanently recorded in `achievement_history`.
+
 ---
 
-# Future Features
+# Future AI Usage
 
 Remain disabled:
 
@@ -584,6 +688,8 @@ AI_REPUTATION_ENABLED = false
 
 AI_RECOGNITION_ENABLED = false
 ```
+
+When enabled, AI_RECOGNITION_ENABLED governs AI-assisted badge recommendation from the `badges` catalog and AI-assisted analysis of `achievement_history`. These remain disabled until approved.
 
 ---
 
@@ -597,6 +703,8 @@ View own reputation
 View own badges
 
 View own bonuses
+
+View own achievement history
 ```
 
 Creators may:
@@ -605,6 +713,8 @@ Creators may:
 View own reputation
 
 View own badges
+
+View own achievement history
 ```
 
 Administrators may:
@@ -612,6 +722,8 @@ Administrators may:
 ```text id="v4r7pv"
 View and manage everything
 ```
+
+Badges are user-scoped, not role-scoped: "view own badges" reads `user_badges` filtered to the caller's own `user_id`, the same policy shape for members and creators alike. The `badges` catalog itself is definitional, not personal data, and is not covered by "own" access.
 
 ---
 
@@ -621,7 +733,7 @@ View and manage everything
 intelligence schema
 
 tables:
-7
+8
 
 status:
 LOCKED

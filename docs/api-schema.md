@@ -1,4 +1,4 @@
-# PCGH Views & Functions Schema
+# PCGH API Schema
 
 ## Schema
 
@@ -18,42 +18,17 @@ Phase 3 — Database API Layer
 
 # Purpose
 
-The API Schema provides reusable database views, SQL functions, and stored procedures for the PCGH platform.
+The API Schema provides a secure, reusable, and optimized database interface for the PCGH platform.
 
-Unlike the core business schemas, this schema does not own business data.
+Unlike the core business schemas, the API Schema does not own business data.
 
-Instead, it exposes a secure, reusable, and optimized interface over the underlying schemas.
+Instead, it exposes database Views, SQL Functions, and Stored Procedures that simplify application development while protecting the underlying business schemas.
 
-The API Schema serves as the primary database interface consumed by:
-
-- Backend Services
-- Admin Dashboard
-- Creator Dashboard
-- Member Dashboard
-- Mobile Applications
-- AI Services
-- Analytics Engine
+Every PCGH application should consume this API layer instead of querying business tables directly.
 
 ---
 
-# Design Philosophy
-
-The API layer exists to:
-
-- Simplify complex SQL queries
-- Reduce duplicated business logic
-- Improve reporting performance
-- Provide consistent data access
-- Centralize reusable calculations
-- Support future API development
-
-Business data remains inside its own schema.
-
-The API schema only exposes controlled access.
-
----
-
-# Dependencies
+# Platform Architecture
 
 ```text
 identity
@@ -70,101 +45,155 @@ governance
         │
 ───────────────
         │
-       api
+        ▼
+      api
+        │
+───────────────
+        │
+Frontend
+
+Backend
+
+Mobile
+
+Admin Portal
+
+AI Services
+```
+
+---
+
+# API Philosophy
+
+The API layer exists to:
+
+• Simplify complex queries
+
+• Centralize reusable business logic
+
+• Improve reporting performance
+
+• Provide a stable database interface
+
+• Reduce duplicated SQL
+
+• Support future platform expansion
+
+Business data always remains inside its original schema.
+
+The API layer never duplicates business data.
+
+---
+
+# Components
+
+The API Schema contains three object types:
+
+```text
+Database Views
+
+SQL Functions
+
+Stored Procedures
 ```
 
 ---
 
 # Database Views
 
-Views provide read-only representations of platform data.
+Views provide optimized read-only datasets for applications.
 
 Views never own data.
 
+Views aggregate data from one or more business schemas.
+
 ---
 
-## View 1
+## api.creator_dashboard_view
 
-### api.creator_dashboard_view
-
-Displays:
+Provides:
 
 - Creator profile
-- Wallet balance
-- Active campaigns
-- Campaign performance
+- Wallet summary
 - Reputation
-- Earned badges
+- Active campaigns
 - Discovery statistics
+- Performance statistics
+- Earned badges
 
 ---
 
-## View 2
+## api.creator_protection_view
 
-### api.member_dashboard_view
+Allows a creator to see their own protection status:
 
-Displays:
+- Community
+- Exclusion Status
+- Cooldown Status
+- Reason
+- Expiration
+
+Does not expose internal rotation logic.
+
+---
+
+## api.member_dashboard_view
+
+Provides:
 
 - Member profile
-- Wallet balance
 - Reputation
 - Pending assignments
 - Completed assignments
-- Earned badges
 - Performance bonuses
+- Earned badges
+
+Member wallets are not part of the approved Economy Schema, so wallet information is not exposed here.
 
 ---
 
-## View 3
+## api.community_dashboard_view
 
-### api.community_dashboard_view
+Provides:
 
-Displays:
-
-- Community reputation
-- Active campaigns
+- Community profile
+- Reputation
 - Members
+- Active campaigns
 - Engagement statistics
-- Performance history
-- Discovery opportunities
+- Historical performance
 
 ---
 
-## View 4
+## api.campaign_summary_view
 
-### api.campaign_summary_view
-
-Displays:
+Provides:
 
 - Campaign
 - Creator
 - Budget
 - Credits spent
 - Communities reached
-- Engagement statistics
 - Campaign status
+- Performance metrics
 
 ---
 
-## View 5
+## api.discovery_summary_view
 
-### api.discovery_summary_view
-
-Displays:
+Provides:
 
 - Discovery opportunities
 - Community assignments
 - Member assignments
-- Completion rate
-- Distribution statistics
+- Completion statistics
+- Distribution analytics
 
 ---
 
-## View 6
+## api.wallet_summary_view
 
-### api.wallet_summary_view
-
-Displays:
+Provides:
 
 - Current balance
 - Lifetime earned
@@ -174,33 +203,45 @@ Displays:
 
 ---
 
-## View 7
+## api.reputation_leaderboard_view
 
-### api.reputation_leaderboard_view
+Provides:
 
-Displays:
-
-- Top creators
-- Top members
-- Top communities
-- Reputation rankings
-- Badge counts
+- Creator rankings
+- Member rankings
+- Community rankings
+- Reputation scores
+- Badge totals
 
 ---
 
-## View 8
+## api.badges_view
 
-### api.platform_statistics_view
+Exposes the badge catalog through the API layer, so applications do not need to query `intelligence.badges` directly.
 
-Displays:
+---
 
-- Total users
-- Total creators
-- Total communities
-- Total campaigns
-- Total credits
-- Discovery statistics
+## api.platform_statistics_view
+
+Provides:
+
+- Platform totals
+- Campaign statistics
+- Community statistics
+- Credit statistics
 - Reputation statistics
+- Discovery statistics
+
+---
+
+## api.platform_configuration_view
+
+Exposes platform configuration information for administrators:
+
+- Feature Flags
+- System Settings
+- Governance Rules
+- AI Controls
 
 ---
 
@@ -212,19 +253,43 @@ Functions centralize reusable business logic.
 
 ## calculate_member_reputation()
 
-Recalculates a member's reputation.
+Recalculates a member's reputation score.
 
 ---
 
 ## calculate_creator_reputation()
 
-Recalculates creator reputation.
+Recalculates a creator's reputation score.
 
 ---
 
 ## calculate_community_reputation()
 
-Recalculates community reputation.
+Recalculates a community's reputation score.
+
+---
+
+## calculate_campaign_performance()
+
+Calculates campaign performance metrics.
+
+---
+
+## calculate_wallet_balance()
+
+Returns a user's current wallet balance.
+
+---
+
+## is_creator_on_cooldown()
+
+Returns TRUE when a creator is under an active distribution cooldown.
+
+---
+
+## is_feature_enabled(flag_name)
+
+Returns whether a platform feature flag is currently enabled.
 
 ---
 
@@ -238,141 +303,112 @@ Automatically creates an achievement_history record.
 
 ## revoke_badge()
 
-Removes an awarded badge.
+Removes a user's active badge.
 
 Historical achievement records remain unchanged.
 
 ---
 
-## credit_performance_bonus()
-
-Credits an approved performance bonus.
-
-Updates:
-
-- Wallet
-- Credit transaction
-- Bonus status
-
----
-
-## refresh_reputation_rankings()
-
-Refreshes reputation leaderboards.
-
----
-
-## calculate_campaign_performance()
-
-Calculates campaign performance statistics.
-
----
-
-## calculate_wallet_balance()
-
-Returns a user's current wallet balance.
-
----
-
-## creator_on_cooldown()
-
-Returns TRUE when a creator is currently restricted from community distribution.
-
----
-
 # Stored Procedures
 
-Stored procedures execute transactional operations involving multiple tables.
-
----
-
-## approve_performance_bonus()
-
-Approves a pending performance bonus.
+Stored Procedures execute transactional platform operations.
 
 ---
 
 ## distribute_campaign()
 
-Creates:
+Performs the full distribution workflow, in order:
 
-- Community distributions
-- Discovery assignments
-- Member assignments
+```text
+Campaign
+      ↓
+Discovery Opportunity
+      ↓
+Community Assignment
+      ↓
+Member Assignment
+      ↓
+Distribution
+```
 
 ---
 
 ## rotate_campaign()
 
-Performs creator-community rotation.
+Performs creator rotation.
 
-Updates protection history.
-
----
-
-## archive_campaign()
-
-Archives completed campaigns.
-
----
-
-## restore_campaign()
-
-Restores archived campaigns.
+Updates Protection History.
 
 ---
 
 ## close_campaign()
 
-Marks a campaign as completed.
+Completes a campaign.
 
 Calculates final statistics.
 
 ---
 
-# Materialized Views
+## archive_campaign()
 
-Currently disabled.
+Archives a campaign.
 
-Future optimization only.
+---
 
-```text
-ENABLE_MATERIALIZED_VIEWS = false
-```
+## restore_campaign()
 
-Future candidates:
+Restores an archived campaign.
 
-```text
-creator_statistics_mv
+---
 
-community_statistics_mv
+## create_performance_bonus()
 
-daily_platform_statistics_mv
+The single transactional operation responsible for the complete performance bonus flow:
 
-reputation_rankings_mv
-```
+- Creates the append-only performance bonus record
+- Credits the recipient's wallet
+- Creates the corresponding credit transaction
+- Records the operation in achievement_history where applicable
+
+The Intelligence Schema uses append-only bonus records and does not implement a pending/approved lifecycle -- a bonus is created already approved, not transitioned through a status.
 
 ---
 
 # Security Philosophy
 
-All API views inherit Row Level Security from their underlying tables.
+Views inherit Row Level Security from their underlying tables.
 
-Functions should use:
+Read-only Views should use:
 
 ```text
 SECURITY INVOKER
 ```
 
-by default.
+Read-only Functions should use:
 
-Administrative operations may use:
+```text
+SECURITY INVOKER
+```
+
+Administrative Functions and Stored Procedures should use:
 
 ```text
 SECURITY DEFINER
 ```
 
-only after security review.
+only where required, and should be callable only by trusted backend/service-role operations.
+
+---
+
+# Security Note: Views and Row Level Security
+
+API Views must be created using:
+
+```text
+security_invoker = true
+```
+
+This preserves Row Level Security behavior by evaluating policies against the calling user rather than the view owner.
 
 ---
 
@@ -390,14 +426,14 @@ Functions
 verb_noun()
 ```
 
-Examples:
+Examples
 
 ```text
-award_badge()
-
 calculate_wallet_balance()
 
-refresh_reputation_rankings()
+award_badge()
+
+is_feature_enabled()
 ```
 
 Stored Procedures
@@ -406,34 +442,14 @@ Stored Procedures
 verb_noun()
 ```
 
-Examples:
+Examples
 
 ```text
 distribute_campaign()
 
-approve_performance_bonus()
-
 archive_campaign()
-```
 
----
-
-# Future AI Usage
-
-The API layer will support:
-
-```text
-AI Dashboard Generation
-
-AI Analytics
-
-AI Campaign Optimization
-
-AI Recommendation Engine
-
-AI Reputation Insights
-
-AI Platform Reporting
+create_performance_bonus()
 ```
 
 ---
@@ -453,7 +469,27 @@ Materialized Views
 
 Webhook Procedures
 
-Background Maintenance Procedures
+Maintenance Procedures
+```
+
+---
+
+# Future AI Usage
+
+The API layer will support:
+
+```text
+AI Dashboard Generation
+
+AI Reporting
+
+AI Recommendation Engine
+
+AI Campaign Optimization
+
+AI Reputation Insights
+
+AI Platform Analytics
 ```
 
 ---
@@ -465,10 +501,10 @@ Schema:
 api
 
 Views:
-8
+11
 
 Functions:
-10
+9
 
 Stored Procedures:
 6
@@ -479,5 +515,5 @@ Materialized Views:
 Status:
 FINAL
 
-READY FOR CLAUDE REVIEW
+READY FOR ARCHITECTURE REVIEW
 ```
