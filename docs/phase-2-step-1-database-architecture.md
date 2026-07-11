@@ -207,13 +207,15 @@ intelligence.creator_reputation
 
 intelligence.community_reputation
 
-intelligence.creator_badges
+intelligence.badges
 
-intelligence.community_badges
+intelligence.user_badges
 
 intelligence.performance_bonus
 
 intelligence.performance_bonus_members
+
+intelligence.achievement_history
 ```
 
 ### Ownership

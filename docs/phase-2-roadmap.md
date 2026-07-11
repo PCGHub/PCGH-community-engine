@@ -14,7 +14,7 @@ Phase 2 — Implementation
 
 ## Status
 
-ACTIVE
+IN PROGRESS
 
 ## Start Date
 
@@ -112,7 +112,7 @@ ChatGPT
 
 Status:
 
-PENDING
+COMPLETE
 
 Deliverables:
 
@@ -122,6 +122,8 @@ Deliverables:
 * Index strategy
 * Foreign keys
 
+Progress: all 7 approved schemas (identity, economy, discovery, protection, intelligence, analytics, governance) are designed and locked. See docs/phase-2-step-1-database-architecture.md.
+
 ---
 
 # STEP 2
@@ -130,7 +132,9 @@ Deliverables:
 
 Status:
 
-PENDING
+IN PROGRESS
+
+Progress: identity, economy, discovery, protection, intelligence, and governance are implemented. Analytics schema implementation is pending.
 
 Schemas:
 
@@ -164,7 +168,7 @@ Deliverables:
 
 Status:
 
-PENDING
+IN PROGRESS
 
 Deliverables:
 
@@ -172,6 +176,8 @@ Deliverables:
 * Schema migrations
 * Table migrations
 * Seed migrations
+
+Progress: migrations 001–005 and 007 (identity, economy, discovery, protection, intelligence, governance) are implemented. Migration 006 (analytics) and seed migrations remain pending — see docs/seed-data.md.
 
 ---
 
@@ -181,7 +187,7 @@ Deliverables:
 
 Status:
 
-PENDING
+IN PROGRESS
 
 Deliverables:
 
@@ -190,6 +196,8 @@ Deliverables:
 * Community policies
 * Creator policies
 * Admin policies
+
+Progress: RLS is implemented for identity, economy, discovery, protection, intelligence, and governance. Analytics RLS is pending alongside its migration.
 
 ---
 
@@ -233,7 +241,9 @@ Governance Service
 
 Status:
 
-PENDING
+IN PROGRESS
+
+Progress: architecture documented in docs/api-schema.md (views, functions, stored procedures defined). SQL implementation is pending.
 
 API Groups:
 
@@ -435,15 +445,30 @@ At the end of Phase 2, PCGH will become:
 
 ```text id="trzpcg"
 PHASE 1
-COMPLETED
+COMPLETE
 
 PHASE 2
-ACTIVE
+IN PROGRESS
 
-CURRENT STEP
+STEP 1 — PHYSICAL DATABASE DESIGN
+COMPLETE
 
-STEP 1
+STEP 2 — SUPABASE SCHEMA IMPLEMENTATION
+IN PROGRESS (analytics schema pending)
 
-PHYSICAL DATABASE DESIGN
+STEP 3 — DATABASE MIGRATIONS
+IN PROGRESS (analytics migration pending)
+
+STEP 4 — ROW LEVEL SECURITY
+IN PROGRESS (analytics RLS pending)
+
+STEP 5 — BACKEND SERVICES
+PENDING
+
+STEP 6 — API LAYER
+IN PROGRESS (architecture documented, SQL pending)
+
+STEPS 7–10 — DASHBOARDS & ANALYTICS DASHBOARD
+PENDING
 ```
 

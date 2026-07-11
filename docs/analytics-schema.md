@@ -102,6 +102,8 @@ discoveries_saved INTEGER DEFAULT 0
 participation_rate DECIMAL(10,2)
 
 last_updated TIMESTAMP
+
+created_at TIMESTAMP
 ```
 
 ---
@@ -143,6 +145,8 @@ UNIQUE(user_id)
 INDEX member_analytics_user_idx(user_id)
 
 INDEX member_analytics_participation_idx(participation_rate)
+
+INDEX member_analytics_created_idx(created_at)
 ```
 
 ---
@@ -179,7 +183,11 @@ discoveries_saved INTEGER DEFAULT 0
 participation_rate DECIMAL(10,2)
 
 last_updated TIMESTAMP
+
+created_at TIMESTAMP
 ```
+
+Sourced from `discovery.community_assignments` (assignment-level counters) and `protection.community_performance_history` (per-campaign performance snapshots). This table is the current-state rollup; the two source tables remain the historical, per-assignment and per-campaign record of truth.
 
 ---
 
@@ -212,6 +220,8 @@ UNIQUE(community_id)
 INDEX community_analytics_idx(community_id)
 
 INDEX community_analytics_participation_idx(participation_rate)
+
+INDEX community_analytics_created_idx(created_at)
 ```
 
 ---
@@ -252,7 +262,11 @@ saves_generated INTEGER DEFAULT 0
 amplification_score DECIMAL(10,2)
 
 last_updated TIMESTAMP
+
+created_at TIMESTAMP
 ```
+
+Sourced from `economy.campaigns` (campaigns_created) and `discovery.discovery_opportunities` / `discovery.community_assignments` (communities_reached, members_reached, views/shares/saves generated). No direct foreign key to a single campaign — this table aggregates across all of a creator's campaigns, so lineage is by `creator_id`, not by `campaign_id`.
 
 ---
 
@@ -290,6 +304,8 @@ UNIQUE(creator_id)
 INDEX creator_analytics_idx(creator_id)
 
 INDEX creator_amplification_idx(amplification_score)
+
+INDEX creator_analytics_created_idx(created_at)
 ```
 
 ---
@@ -317,7 +333,11 @@ metric_name VARCHAR(100)
 metric_value BIGINT
 
 recorded_at TIMESTAMP
+
+created_at TIMESTAMP
 ```
+
+`recorded_at` is the metric's as-of timestamp (may be backfilled); `created_at` is when the row was written, per platform-wide convention.
 
 ---
 
@@ -345,6 +365,8 @@ TOTAL_AMPLIFICATIONS
 INDEX platform_metric_idx(metric_name)
 
 INDEX platform_recorded_idx(recorded_at)
+
+INDEX platform_analytics_created_idx(created_at)
 ```
 
 ---
@@ -385,7 +407,9 @@ created_at TIMESTAMP
 
 ---
 
-## Example Events
+## Event Types
+
+`event_type` is a governed vocabulary, not a free-text field. Initial approved values:
 
 ```text id="k5r2mx"
 USER_CREATED
@@ -403,6 +427,10 @@ BONUS_GRANTED
 BADGE_AWARDED
 ```
 
+New event types must be added to this list before being emitted. This keeps `event_type` usable as a stable feature for future AI/analytics consumers instead of drifting into an ungoverned free-text space, matching the pattern used by `discovery.assignment_history.action` and `intelligence.achievement_history.event_type`.
+
+`analytics_events` is the platform-wide superset log — it records all measurable platform activity, including events with no recognition value (`DISCOVERY_VIEWED`, `DISCOVERY_SHARED`). `intelligence.achievement_history` is a narrower, user-facing log limited to reputation/badge/achievement/recognition events. The two are not duplicates: every event recorded in `achievement_history` is also expected to have a corresponding `analytics_events` row (e.g. `BADGE_AWARDED`), but most `analytics_events` rows have no `achievement_history` counterpart.
+
 ---
 
 ## Recommended Indexes
@@ -413,6 +441,8 @@ INDEX analytics_event_type_idx(event_type)
 INDEX analytics_event_user_idx(user_id)
 
 INDEX analytics_event_created_idx(created_at)
+
+INDEX analytics_event_entity_idx(entity_type, entity_id)
 ```
 
 ---
@@ -477,23 +507,41 @@ INDEX analytics_report_creator_idx(generated_by)
 
 # Analytics Relationships
 
+Analytics is a rollup layer, not a primary source of data. Every aggregate table here is derived from an upstream schema, which remains the record of truth:
+
 ```text id="u7m4qw"
 identity.users
         ↓
 member_analytics
+        ↑
+discovery.member_assignments
 
 identity.member_communities
         ↓
 community_analytics
+        ↑
+discovery.community_assignments, protection.community_performance_history
 
 identity.users
         ↓
 creator_analytics
+        ↑
+economy.campaigns, discovery.discovery_opportunities
 
 analytics_events
         ↓
 analytics_reports
+
+governance.feature_flags, governance.ai_controls
+        ↓
+analytics (AI / predictive feature gating)
 ```
+
+Analytics does not duplicate Intelligence's reputation or badge scoring (`intelligence.member_reputation`, `creator_reputation`, `community_reputation`, `badges`, `user_badges`) — those remain owned by the Intelligence Schema. Analytics may consume them for reporting but is not their source.
+
+`analytics.creator_analytics`, `analytics.community_analytics`, and `analytics.platform_analytics` are the intended persistence layer behind the API Schema's future materialized view candidates (`creator_statistics_mv`, `community_statistics_mv`, `daily_platform_statistics_mv`). Those views should read from these tables rather than re-aggregating source schemas independently, to avoid building the same rollup twice.
+
+Materialized Views are implementation optimizations only. They improve query performance but never replace the Analytics Schema as the authoritative reporting layer.
 
 ---
 
@@ -521,43 +569,89 @@ Cooldown Created
 
 # Future Features
 
-Remain disabled:
+AI and predictive analytics features are not declared locally. They are owned by the Governance Schema:
 
 ```text id="q9m3qx"
-AI_ANALYTICS_ENABLED = false
+governance.feature_flags -> AI_ANALYTICS_ENABLED
 
-PREDICTIVE_ANALYTICS_ENABLED = false
-
-AI_OPTIMIZATION_ENABLED = false
+governance.ai_controls -> AI_ANALYTICS
 ```
+
+Additional predictive/optimization features (e.g. predictive analytics, AI-driven optimization) must be registered as new rows in `governance.feature_flags` and `governance.ai_controls` before use, not as flags local to this schema. All remain disabled by default.
 
 ---
 
 # RLS Philosophy
 
+`member_analytics` and `creator_analytics` are personal, per-user rollups:
+
 Members may:
 
 ```text id="a4r8mx"
-View own analytics
+View own analytics (member_analytics)
 ```
 
 Creators may:
 
 ```text id="w8m2qw"
-View own analytics
+View own analytics (creator_analytics)
 ```
+
+`community_analytics` is community-scoped, not personal. Consistent with the Protection Schema's philosophy of restricting community-wide performance data from ordinary members:
+
+Administrators may:
+
+```text id="community_analytics_rls_admin"
+View all community analytics
+```
+
+Creators may:
+
+```text id="community_analytics_rls_creator"
+View analytics only for communities participating in their own campaigns
+```
+
+Members may:
+
+```text id="community_analytics_rls_member"
+No direct access
+```
+
+Future Community Managers may:
+
+```text id="community_analytics_rls_manager"
+View analytics for communities they manage
+```
+
+`platform_analytics` and `analytics_events` are platform-wide aggregates and raw behavioral data. Consistent with the Protection Schema's precedent of restricting sensitive cross-user tables to administrators only:
 
 Administrators may:
 
 ```text id="t5r7pv"
-View all analytics
+View all analytics, including platform_analytics and analytics_events
 ```
+
+Members and creators may not:
+
+```text id="analytics_events_restrict"
+Query platform_analytics or analytics_events directly
+```
+
+`analytics_reports` may be viewed by the user who generated it (`generated_by`) and by administrators:
+
+```text id="analytics_reports_rls"
+Generated_by user: view own reports
+
+Administrators: view all reports
+```
+
+Analytics tables are written by service-role aggregation jobs, not by end users. No role other than the service role and administrators may INSERT or UPDATE any table in this schema.
 
 ---
 
 # Partitioning Strategy
 
-Future partitioning candidates:
+Future partitioning candidates — all append-only, unbounded-growth tables:
 
 ```text id="j7m9qx"
 analytics_events
@@ -572,6 +666,10 @@ Partition strategy:
 ```sql id="v3r4mx"
 PARTITION BY RANGE(created_at)
 ```
+
+`member_analytics`, `community_analytics`, and `creator_analytics` are excluded from partitioning: each is a single-row-per-entity rollup (enforced by a `UNIQUE` constraint), not an append-only log, so range partitioning by time does not apply.
+
+Retention and partitioning for `analytics_events` should be planned alongside `intelligence.achievement_history`, since the two logs overlap in the recognition-event subset described in Event Philosophy — the two should not diverge on retention window without a documented reason.
 
 ---
 
