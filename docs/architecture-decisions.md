@@ -120,9 +120,44 @@ This document is the running record of approved architectural decisions for the 
 Document:
 docs/architecture-decisions.md
 
-Entries:
+Approved ADRs:
 12
 
+Pending ADR Proposals:
+3
+
 Status:
-LOCKED (entries reflect already-approved decisions only)
+LOCKED
 ```
+
+---
+
+# Pending ADR Proposals
+
+## ADR-013 — Creator Protection Visibility
+
+**Status:**
+PROPOSED
+
+**Summary:**
+Determine whether creators should have visibility into their own cooldown and rotation status without exposing internal protection mechanisms.
+
+---
+
+## ADR-014 — Public Reputation Leaderboards
+
+**Status:**
+PROPOSED
+
+**Summary:**
+Determine whether reputation leaderboards should expose limited public ranking information while preserving private reputation metrics.
+
+---
+
+## ADR-015 — Reputation & Trust Scoring Model
+
+**Status:**
+PROPOSED
+
+**Summary:**
+Define the official reputation, trust, consistency, and amplification scoring model for the PCGH platform.
