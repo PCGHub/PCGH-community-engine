@@ -1,4 +1,4 @@
-# PCGH Implementation Playbook — Phase 4
+# PCGH Implementation Playbook — Phase 5
 
 ## Hierarchy Level
 
@@ -6,27 +6,27 @@ Level 1 — Project Governance
 
 ## Status
 
-DRAFT — pending Chief Architect and Founder review. Not yet ACTIVE.
+ACTIVE — reviewed and approved by the Founder, 2026-07-15, per `docs/phase-4-completion.md`.
 
 ## Phase
 
-Phase 4 — Application Implementation
+Phase 5 — Application Implementation
 
 ---
 
 # Purpose
 
-This document is the coding governance guide for Phase 4 — Application Implementation: Backend Services, the three dashboards (Admin, Creator, Community), and the Analytics Dashboard, per `docs/phase-2-roadmap.md`'s Steps 5-10.
+This document is the coding governance guide for Phase 5 — Application Implementation: Backend Services, the three dashboards (Admin, Creator, Community), and the Analytics Dashboard, per `docs/phase-2-roadmap.md`'s Steps 5-10.
 
-It translates rules already approved in `CLAUDE.md`, `docs/implementation-rules.md`, and `docs/documentation-governance-framework.md` into concrete practice for application code. It introduces no new architecture, business logic, or authority structure — every rule below cites the already-locked source it comes from. Where Phase 4 raises a genuine open question, this document says so and points to the Architecture Change Lifecycle rather than deciding unilaterally.
+It translates rules already approved in `CLAUDE.md`, `docs/implementation-rules.md`, and `docs/documentation-governance-framework.md` into concrete practice for application code. It introduces no new architecture, business logic, or authority structure — every rule below cites the already-locked source it comes from. Where Phase 5 raises a genuine open question, this document says so and points to the Architecture Change Lifecycle rather than deciding unilaterally.
 
 This is a draft. It does not become ACTIVE until reviewed under the same Architecture Change Lifecycle it describes (`docs/documentation-governance-framework.md` §5a).
 
 ---
 
-# 1. Scope of Phase 4
+# 1. Scope of Phase 5
 
-Per `docs/phase-2-roadmap.md`, Phase 4 covers:
+Per `docs/phase-2-roadmap.md`, Phase 5 covers:
 
 ```text
 Backend Services
@@ -42,7 +42,7 @@ Community Application
 Analytics Dashboard
 ```
 
-The database layer (Phase 3, migrations 001-009) is complete and locked (`docs/database-implementation-complete.md`). Phase 4 builds *on top of* it. Phase 4 work does not modify any migration, any schema document, or any RLS policy — that would re-enter the Architecture Change Lifecycle, not proceed as ordinary application coding.
+The database layer (Phase 3, migrations 001-009) is complete and locked (`docs/database-implementation-complete.md`). Phase 5 builds *on top of* it. Phase 5 work does not modify any migration, any schema document, or any RLS policy — that would re-enter the Architecture Change Lifecycle, not proceed as ordinary application coding.
 
 ---
 
@@ -55,7 +55,7 @@ No application queries identity, economy, discovery,
 protection, intelligence, analytics, or governance directly.
 ```
 
-This is not a new rule — it is `docs/api-schema.md`'s own stated purpose, restated as the central constraint for Phase 4: "Every PCGH application should consume this API layer instead of querying business tables directly." Every other rule in this document exists to protect this one.
+This is not a new rule — it is `docs/api-schema.md`'s own stated purpose, restated as the central constraint for Phase 5: "Every PCGH application should consume this API layer instead of querying business tables directly." Every other rule in this document exists to protect this one.
 
 Practical consequence: a dashboard needing wallet data calls `api.wallet_summary_view`, not `economy.credit_wallets`. A service needing to close a campaign calls `api.close_campaign()`, not an `UPDATE` against `economy.campaigns`. If the API layer doesn't yet expose what a feature needs, the fix is a new or revised API object proposed through the Architecture Change Lifecycle — not a direct business-schema query bypassing it.
 
@@ -75,7 +75,7 @@ TypeScript -- never JavaScript
 Strict typing always
 ```
 
-Additional Phase 4-specific rules:
+Additional Phase 5-specific rules:
 
 - The Supabase `service_role` key is for trusted backend code only (server-side, never shipped to a browser or mobile client). Every `SECURITY DEFINER` routine in `008_create_api_schema.sql` treats `auth.uid() is null` as a signal of trusted service-role context — if that key ever reaches client-side code, this entire authorization model is defeated. This is a hard rule, not a style preference.
 - Backend services call stored procedures via `CALL`, functions via `SELECT`, and read via views — matching the object types `docs/api-schema.md` defines, not ad hoc RPC wrappers that duplicate their logic.
@@ -98,7 +98,7 @@ Reusable components
 No duplicated UI
 ```
 
-Additional Phase 4-specific rules:
+Additional Phase 5-specific rules:
 
 - Dashboards consume `api.*` views for reads, matching each dashboard's documented data ("creator_dashboard_view" for the Creator Dashboard, "community_dashboard_view" for the Community Application, etc., per `docs/api-schema.md`).
 - Where an API view's field is documented but currently unpopulated for a given role due to RLS (see Section 8), the frontend must handle that as a legitimate empty/`NULL` state — not work around it with a direct table query or a hardcoded fallback value.
@@ -107,7 +107,7 @@ Additional Phase 4-specific rules:
 
 # 5. Coding Standards
 
-Per `CLAUDE.md` ("Coding Standards"), unchanged for Phase 4:
+Per `CLAUDE.md` ("Coding Standards"), unchanged for Phase 5:
 
 ```text
 Readable
@@ -137,7 +137,7 @@ No feature flags or shims for backwards compatibility — per `CLAUDE.md`, chang
 
 ---
 
-# 7. The Architecture Change Lifecycle Applies to Phase 4 Too
+# 7. The Architecture Change Lifecycle Applies to Phase 5 Too
 
 Per `docs/documentation-governance-framework.md` §5a:
 
@@ -177,7 +177,7 @@ Until each is resolved:
 
 ---
 
-# 9. Documentation Ownership for Phase 4
+# 9. Documentation Ownership for Phase 5
 
 Extending `docs/documentation-governance-framework.md` §12 (Documentation Ownership) to application code, using the same already-established hierarchy — no new authority is introduced:
 
@@ -191,7 +191,7 @@ via the Architecture Change Lifecycle (Section 7 above)
 Final approval: Founder
 ```
 
-Every new Level 1/2/3 document Phase 4 produces must declare its Hierarchy Level and Status at creation, per `docs/documentation-governance-framework.md`'s existing Documentation Governance Rules — this playbook does so above.
+Every new Level 1/2/3 document Phase 5 produces must declare its Hierarchy Level and Status at creation, per `docs/documentation-governance-framework.md`'s existing Documentation Governance Rules — this playbook does so above.
 
 ---
 
@@ -213,9 +213,9 @@ Never commit broken code. Never skip review by routing around the Conflict Resol
 
 ---
 
-# 11. Definition of Done (Phase 4)
+# 11. Definition of Done (Phase 5)
 
-A Phase 4 change is done when:
+A Phase 5 change is done when:
 
 ```text
 [ ] It consumes the api schema exclusively -- no direct
@@ -232,6 +232,33 @@ A Phase 4 change is done when:
 [ ] It has been exercised end-to-end, not just type-checked
 
 [ ] Any new documentation declares its Hierarchy Level and Status
+
+```
+
+---
+
+# 12. Implementation Checklist
+
+```text
+□ Architecture followed
+
+□ Implementation Rules followed
+
+□ Documentation unchanged (unless required)
+
+□ No ADR violations
+
+□ No temporary shortcuts
+
+□ Security preserved
+
+□ Tests (if applicable)
+
+□ Repository clean
+
+□ Ready for review
+
+□ Ready for commit
 ```
 
 ---
@@ -246,11 +273,11 @@ Hierarchy Level:
 1
 
 Phase:
-4
+5
 
 Status:
-DRAFT
+ACTIVE
 
-Ready for:
-Architecture Review
+Approved:
+2026-07-15, per docs/phase-4-completion.md
 ```

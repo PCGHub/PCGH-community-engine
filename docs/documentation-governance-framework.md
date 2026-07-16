@@ -39,6 +39,7 @@ architecture-decisions.md
 IMPLEMENTATION_STATUS.md
 phase-2-roadmap.md
 documentation-governance-framework.md (this document)
+implementation-playbook.md (Phase 4 coding governance)
 
 ------------------------------------------------
 
@@ -52,6 +53,14 @@ system-flow.md            [placeholder — see Section 9]
 security.md                [placeholder — see Section 9]
 api-specification.md       [placeholder — see Section 9]
 database-schema.md         [placeholder — see Section 9]
+phase-4-kickoff.md
+phase-5-roadmap.md
+application-architecture-freeze.md
+backend-architecture.md
+authentication-architecture.md
+service-architecture.md
+domain-architecture.md
+frontend-architecture.md
 
 ------------------------------------------------
 
@@ -87,6 +96,7 @@ creator-discovery.md
 audience-amplification.md
 feature flag engine.md     [placeholder]
 audience Matching Engine   [placeholder]
+technical-debt.md          [non-authoritative engineering reference]
 
 ------------------------------------------------
 
@@ -95,12 +105,21 @@ LEVEL 5 — Historical Documents (Point-in-time records)
 phase-1-completion.md
 phase-2-step-1-database-architecture.md
 project-handoff-phase-2.md
+database-implementation-complete.md
+phase-4-completion.md      [added retroactively -- was already
+                           Level 5 per its own header, missing
+                           from this index]
+phase-5-completion.md
 roadmap.md                 [placeholder]
 ```
 
 **Precedence rule:** when two documents describe the same thing differently, the document in the lower-numbered level governs. Level 3 (Implementation Specifications) is always authoritative over Level 4 (Conceptual References) for anything touching production database structure. Level 1 governs Level 2 through 5. This resolves the Engine-vs-Schema conflicts identified in the most recent architectural review without requiring any document to be rewritten immediately.
 
-## 1a. Documentation Authority Order (Level 1 internal precedence)
+## 1a. Documentation Authority Order
+
+This section is the single, consolidated statement of document precedence for the whole project. Any other document that previously stated its own precedence list (e.g. `phase-4-kickoff.md`'s "Documentation Governance" principle) now defers to this section rather than restating it, to prevent the two from drifting apart the way they previously did.
+
+### Level 1 internal precedence
 
 Level 1 contains multiple governance documents. Among them, authority is ordered as follows:
 
@@ -110,11 +129,37 @@ Implementation Rules
 Documentation Governance Framework
         ↓
 CLAUDE.md
+        ↓
+Implementation Playbook
 ```
 
-If `implementation-rules.md`, this framework, and `CLAUDE.md` disagree, the higher document in this order takes precedence: `implementation-rules.md` governs over this framework, and this framework governs over `CLAUDE.md`. `architecture-decisions.md`, `IMPLEMENTATION_STATUS.md`, and `phase-2-roadmap.md` are not part of this ordering — they record decisions and status rather than asserting rules, so they do not compete for precedence with the three rule-making documents above.
+If `implementation-rules.md`, this framework, `CLAUDE.md`, and `implementation-playbook.md` disagree, the higher document in this order takes precedence. `architecture-decisions.md`, `IMPLEMENTATION_STATUS.md`, and `phase-2-roadmap.md` are not part of this internal ordering — they record decisions and status rather than asserting rules, so they do not compete for precedence with the four rule-making documents above.
 
 This order does not, by itself, change any existing phase numbering or document content. It only establishes which document wins if such a conflict is ever formally invoked. See Section 7 for how this applies to the currently logged `CLAUDE.md` / `implementation-rules.md` phase-model disagreement.
+
+### Full authority order (across all levels)
+
+Extending the Level 1 internal order above down through the rest of the hierarchy:
+
+```text
+implementation-rules.md
+        ↓
+documentation-governance-framework.md
+        ↓
+CLAUDE.md
+        ↓
+implementation-playbook.md
+        ↓
+Architecture documents (Level 2)
+        ↓
+Schema documents (Level 3)
+        ↓
+architecture-decisions.md (ADRs)
+        ↓
+Implementation (migrations, application code)
+```
+
+This full order governs *sequencing and rule-making authority* end to end; it does not override the simpler Level-based precedence rule already stated above ("the document in the lower-numbered level governs") — it refines what happens *within* and *below* Level 1, and clarifies where ADRs and actual implementation sit relative to documentation. A Level 2 architecture document (e.g. `backend-architecture.md`, `authentication-architecture.md`, `service-architecture.md`, `domain-architecture.md`, `application-architecture-freeze.md`, `phase-5-roadmap.md`, `phase-4-kickoff.md`) is always subordinate to any Level 1 document under both statements of the rule.
 
 ---
 
@@ -494,11 +539,16 @@ Hierarchy Level:
 1
 
 Entries classified:
-Level 1: 6
-Level 2: 8 (4 placeholder)
+Level 1: 7
+Level 2: 16 (4 placeholder)
 Level 3: 9
-Level 4: 16 (2 placeholder)
-Level 5: 4 (1 placeholder)
+Level 4: 17 (2 placeholder)
+Level 5: 7 (1 placeholder)
+
+Documentation authority order:
+Extended to a full, consolidated cross-level order
+(Section 1a) -- absorbs the precedence list previously
+duplicated in phase-4-kickoff.md
 
 Governance hierarchy:
 Founder -> Chief Architect -> Chief Engineer

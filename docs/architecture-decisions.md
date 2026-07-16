@@ -114,6 +114,16 @@ This document is the running record of approved architectural decisions for the 
 
 ---
 
+# ADR 016 — AI Service Is a Separate Python/FastAPI Application
+
+**Decision:** The PCGH application backend is Next.js + TypeScript + Supabase (per `CLAUDE.md`'s `Backend` section), with one documented exception: the AI Service is implemented as a separate, independently deployed Python + FastAPI application. It shares no runtime, process, or codebase with the Next.js backend, and integrates with the rest of the system only through a defined internal API contract — never through shared in-process code, a shared ORM, or direct access to the same database connection pool. It consumes the `api` schema for any data access like every other service, and remains bound by the same RLS and `service_role` rules; being a different language grants no exemption from the security model. It implements orchestration only — AI-assisted decision-making features remain deferred pending ADR approval regardless of which language hosts the orchestration code.
+
+**Rationale:** Python's AI/ML ecosystem is the practical choice for AI orchestration work; isolating it as its own service preserves the Next.js/TypeScript mandate for the rest of the backend and contains the blast radius of introducing a second language.
+
+**Source:** Founder direction (Phase 5 planning session), `docs/backend-architecture.md` ("Application Stack," "AI Service"), `docs/service-architecture.md` ("AI Services")
+
+---
+
 # Document Status
 
 ```text
@@ -121,10 +131,10 @@ Document:
 docs/architecture-decisions.md
 
 Approved ADRs:
-12
+13
 
 Pending ADR Proposals:
-3
+4
 
 Status:
 LOCKED
@@ -161,3 +171,17 @@ PROPOSED
 
 **Summary:**
 Define the official reputation, trust, consistency, and amplification scoring model for the PCGH platform.
+
+---
+
+## ADR-017 — Payment Credit Pipeline
+
+**Status:**
+PROPOSED
+
+**Summary:**
+Define the `api.*` procedure(s) needed to credit `economy.credit_wallets` (and record the corresponding `economy.credit_transactions` entry) from a verified Flutterwave purchase, so Phase 5 Step 12's deferred "Flutterwave integration for credit purchase" deliverable can be implemented without an application-layer write to `economy.credit_wallets`/`economy.credit_transactions`.
+
+**Source:** Phase 5 Step 12 (Payments) Founder review, 2026-07-16; `docs/phase-5-roadmap.md` Step 12's own Dependencies clause ("If Flutterwave-driven wallet crediting requires a new `api.*` procedure not yet built, that is an Architecture Change Lifecycle proposal, not an application-layer workaround").
+
+**Note:** Originally requested as "ADR-016," but ADR-016 is already assigned (AI Service Is a Separate Python/FastAPI Application, approved during Phase 4). Numbered ADR-017 here to avoid a collision with the existing, approved decision.
