@@ -40,6 +40,8 @@ IMPLEMENTATION_STATUS.md
 phase-2-roadmap.md
 documentation-governance-framework.md (this document)
 implementation-playbook.md (Phase 4 coding governance)
+engineering-principles.md (permanent AGR/EPR/DSR/QGR rule register,
+                           effective 2026-07-17)
 
 ------------------------------------------------
 
@@ -131,9 +133,11 @@ Documentation Governance Framework
 CLAUDE.md
         ↓
 Implementation Playbook
+        ↓
+Engineering Principles (AGR/EPR/DSR/QGR)
 ```
 
-If `implementation-rules.md`, this framework, `CLAUDE.md`, and `implementation-playbook.md` disagree, the higher document in this order takes precedence. `architecture-decisions.md`, `IMPLEMENTATION_STATUS.md`, and `phase-2-roadmap.md` are not part of this internal ordering — they record decisions and status rather than asserting rules, so they do not compete for precedence with the four rule-making documents above.
+If `implementation-rules.md`, this framework, `CLAUDE.md`, `implementation-playbook.md`, and `engineering-principles.md` disagree, the higher document in this order takes precedence. `architecture-decisions.md`, `IMPLEMENTATION_STATUS.md`, and `phase-2-roadmap.md` are not part of this internal ordering — they record decisions and status rather than asserting rules, so they do not compete for precedence with the five rule-making documents above. `engineering-principles.md` sits last among them because it codifies granular engineering/quality-gate practice already implied by the other four, rather than asserting new project-level or architectural authority.
 
 This order does not, by itself, change any existing phase numbering or document content. It only establishes which document wins if such a conflict is ever formally invoked. See Section 7 for how this applies to the currently logged `CLAUDE.md` / `implementation-rules.md` phase-model disagreement.
 
@@ -149,6 +153,8 @@ documentation-governance-framework.md
 CLAUDE.md
         ↓
 implementation-playbook.md
+        ↓
+engineering-principles.md
         ↓
 Architecture documents (Level 2)
         ↓
@@ -539,7 +545,7 @@ Hierarchy Level:
 1
 
 Entries classified:
-Level 1: 7
+Level 1: 8
 Level 2: 16 (4 placeholder)
 Level 3: 9
 Level 4: 17 (2 placeholder)
