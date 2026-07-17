@@ -27,10 +27,21 @@
  * not attempt to reconstruct or widen that (e.g. by calling this
  * per-user in a loop), per Step 9's exit criteria that the leaderboard
  * remains admin-only in practice, ADR-014 not worked around.
+ *
+ * Observability (docs/technical-debt.md TD-003): every mutating call
+ * records a structured log on failure and an audit event + metric on
+ * success, using the existing app/utils/{logger,audit,metrics,tracing}
+ * utilities exactly as designed -- no new logging framework, no change
+ * to any function's parameters, return type, or error-throwing
+ * contract.
  */
 
 import { createSupabaseClient } from '../../config/supabase';
 import type { Badge, ReputationLeaderboardEntry } from '../../domains/intelligence/intelligence';
+import { recordAuditEvent } from '../../utils/audit';
+import { logger } from '../../utils/logger';
+import { recordMetric } from '../../utils/metrics';
+import { generateRequestId } from '../../utils/tracing';
 
 interface BadgeRow {
   badge_id: string;
@@ -109,54 +120,111 @@ export async function awardBadge(
   badgeId: string,
   expiresAt?: string,
 ): Promise<string | null> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { data, error } = await client
     .schema('api')
     .rpc('award_badge', { p_user_id: userId, p_badge_id: badgeId, p_expires_at: expiresAt ?? null });
 
   if (error) {
+    logger.error('badge.award.failed', { requestId, userId, badgeId, error: error.message });
     throw new Error(error.message);
   }
 
-  return (data as string | null) ?? null;
+  const awardId = (data as string | null) ?? null;
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'badge.award',
+    entityType: 'user_badge',
+    entityId: awardId ?? badgeId,
+    metadata: { userId, badgeId, expiresAt, requestId },
+  });
+  recordMetric('badge.awarded', 1, { badgeId });
+
+  return awardId;
 }
 
 export async function revokeBadge(accessToken: string, userId: string, badgeId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('revoke_badge', { p_user_id: userId, p_badge_id: badgeId });
 
   if (error) {
+    logger.error('badge.revoke.failed', { requestId, userId, badgeId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'badge.revoke',
+    entityType: 'user_badge',
+    entityId: userId,
+    metadata: { badgeId, requestId },
+  });
+  recordMetric('badge.revoked', 1, { badgeId });
 }
 
 export async function recalculateMemberReputation(accessToken: string, userId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('calculate_member_reputation', { p_user_id: userId });
 
   if (error) {
+    logger.error('reputation.recalculate.member.failed', { requestId, userId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'reputation.recalculate.member',
+    entityType: 'member_reputation',
+    entityId: userId,
+    metadata: { requestId },
+  });
+  recordMetric('reputation.recalculated.member', 1, { userId });
 }
 
 export async function recalculateCreatorReputation(accessToken: string, userId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('calculate_creator_reputation', { p_user_id: userId });
 
   if (error) {
+    logger.error('reputation.recalculate.creator.failed', { requestId, userId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'reputation.recalculate.creator',
+    entityType: 'creator_reputation',
+    entityId: userId,
+    metadata: { requestId },
+  });
+  recordMetric('reputation.recalculated.creator', 1, { userId });
 }
 
 export async function recalculateCommunityReputation(accessToken: string, communityId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client
     .schema('api')
     .rpc('calculate_community_reputation', { p_community_id: communityId });
 
   if (error) {
+    logger.error('reputation.recalculate.community.failed', { requestId, communityId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'reputation.recalculate.community',
+    entityType: 'community_reputation',
+    entityId: communityId,
+    metadata: { requestId },
+  });
+  recordMetric('reputation.recalculated.community', 1, { communityId });
 }
 
 export interface CreatePerformanceBonusParams {
@@ -176,6 +244,7 @@ export async function createPerformanceBonus(
   accessToken: string,
   params: CreatePerformanceBonusParams,
 ): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('create_performance_bonus', {
     p_community_id: params.communityId,
@@ -190,6 +259,26 @@ export async function createPerformanceBonus(
   });
 
   if (error) {
+    logger.error('performance_bonus.create.failed', {
+      requestId,
+      communityId: params.communityId,
+      campaignId: params.campaignId,
+      error: error.message,
+    });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: params.approvedBy,
+    action: 'performance_bonus.create',
+    entityType: 'performance_bonus',
+    entityId: params.campaignId,
+    metadata: {
+      communityId: params.communityId,
+      bonusAmount: params.bonusAmount,
+      recipientCount: params.memberAllocations.length,
+      requestId,
+    },
+  });
+  recordMetric('performance_bonus.created', params.bonusAmount, { communityId: params.communityId });
 }

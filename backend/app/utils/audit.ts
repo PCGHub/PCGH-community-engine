@@ -12,6 +12,10 @@
  * this same function signature -- once an `audit` schema and an
  * `api.*` write path exist, this function's implementation changes,
  * not its callers.
+ *
+ * Called from every critical mutating operation (Campaign, Intelligence
+ * services; the notification dispatch job) -- see
+ * docs/technical-debt.md TD-003 for the resolution record.
  */
 
 import { logger } from './logger';

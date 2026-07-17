@@ -9,6 +9,10 @@
  * records structured metric log lines via the existing logger, same
  * pattern as app/ai/client.ts and app/notifications/email-provider.ts:
  * an interface that doesn't invent an unapproved vendor decision.
+ *
+ * Called from every critical mutating operation (Campaign, Intelligence
+ * services; the notification dispatch job) -- see
+ * docs/technical-debt.md TD-003 for the resolution record.
  */
 
 import { logger } from './logger';

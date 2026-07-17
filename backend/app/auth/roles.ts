@@ -9,6 +9,10 @@
  * and identity.user_roles, both RLS-governed) -- never from JWT claims
  * or a cache, per "Permission Resolution": there is no application-layer
  * permission list to keep in sync with the database.
+ *
+ * Not currently called by any dashboard -- intentional, not a defect;
+ * see app/auth/middleware.ts's header and docs/technical-debt.md's
+ * "Reclassified" entry for why.
  */
 
 import { createSupabaseClient } from '../config/supabase';

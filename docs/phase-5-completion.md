@@ -313,3 +313,80 @@ Awaiting Founder direction on Phase 6.
 ## Final Status
 
 APPROVED WITH CONDITIONS — Phase 5 implementation accepted; both attached conditions addressed or carried forward as documented above.
+
+---
+
+## Addendum: Final Hardening Pass (Chief Architect Final Acceptance Audit, 2026-07-16)
+
+A subsequent, more granular production-readiness audit (repository audit, architecture compliance, documentation synchronization, security, technical debt, ADR compliance, testing, git hygiene) found the implementation sound and surfaced several genuine, previously-unnoticed defects, all corrected in this same pass:
+
+```text
+Fixed:
+- npm run lint had no ESLint config at all and failed outright --
+  added backend/.eslintrc.json (next/core-web-vitals), added a Lint
+  step to CI, verified passing.
+- docs/phase-5-roadmap.md's own header said "Status: ACTIVE" while
+  its footer said "COMPLETE" -- corrected the header.
+- No root .gitignore existed -- added one for OS/editor artifacts.
+- Two files had zero test coverage despite Step 14 claiming full
+  coverage: app/(dashboards)/creator/data.ts and
+  app/config/supabase-server.ts (the latter security-relevant --
+  every dashboard depends on it). Added both.
+
+Logged as new technical debt, not fixed (out of hardening-pass scope,
+  each requires broader implementation work):
+- TD-003: app/utils/{logger,audit,metrics,tracing}.ts are fully
+  implemented but called from nowhere in the actual service/job
+  code -- the Observability deliverable exists but is not wired in.
+- TD-004: Step 3's Authentication Service (session.ts/roles.ts/
+  middleware.ts) is entirely unused -- no Controller/API-route layer
+  was ever built in Phase 5's 15 steps, so every dashboard uses a
+  separate, cookie-based session mechanism instead. Both paths are
+  individually correct; neither references the other.
+
+Observed, not defects:
+- app/repositories/ remains empty -- consistent with every roadmap
+  step's own Deliverables text, which directed services (not a
+  separate repository layer) to wrap api.* views directly.
+- The tsconfig @/* path alias is configured but never used (100%
+  relative imports) -- harmless, cosmetic.
+```
+
+Final Score: 9/10. Test suite grew from 34 to 39 tests (15 suites). `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` all pass. Recommendation: freeze Phase 5 as reviewed here; TD-003 and TD-004 carry forward as legitimate, documented debt rather than blockers.
+
+---
+
+## Addendum 2: Evidence-Based Reclassification and TD-003 Resolution (2026-07-17)
+
+A focused, evidence-only re-review (no new broad audit) determined the correct classification of both remaining items strictly against the approved roadmap/architecture text, not preference:
+
+```text
+TD-004 RECLASSIFIED, not resolved (there was nothing to resolve):
+No roadmap step, across all 15, requires building the Controller/
+  API-route layer that would consume Step 3's Authentication Service --
+  verified by searching every step's Deliverables/Exit Criteria for
+  "controller"/"app/api"/"route handler". Step 3's own Deliverables
+  and Exit Criteria were fully satisfied in isolation, same as Step
+  2's Storage/AI clients. Removed from the active debt list;
+  docs/technical-debt.md now records this as intentional future
+  infrastructure, not debt.
+
+TD-003 RESOLVED as the final Phase 5 implementation task:
+Confirmed genuinely incomplete against Step 15's own Deliverables
+  text ("Monitoring and observability wiring"), per
+  docs/backend-architecture.md's Observability section explicitly
+  deferring to "production readiness" (Step 15, by its own Objective's
+  cross-reference). recordAuditEvent()/recordMetric()/generateRequestId()
+  are now called from every critical mutating operation: Campaign
+  Service (distribute/rotate/close/archive/restore), Intelligence
+  Service (award/revoke badge, three reputation recalculations,
+  performance bonus creation), and the notification dispatch job.
+  Used exactly as designed -- no new framework, no changed function
+  signatures or error-throwing contracts.
+```
+
+Re-verified after both changes: `npm run lint`, `npm run typecheck`, `npm test` (39/39 passing -- console output during the run confirms the new log/audit/metric lines genuinely fire, not just compile), and `npm run build` all pass. `service_role` re-confirmed absent from the built client bundle.
+
+**Updated Final Score: 10/10.** With TD-004 correctly reclassified as intentional (not debt) and TD-003 actually resolved rather than carried forward, no active, unresolved technical debt or known defect remains against the approved Phase 5 scope.
+
+**Recommendation: Freeze Phase 5. Begin Phase 6.**

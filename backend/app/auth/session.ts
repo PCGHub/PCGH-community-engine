@@ -12,6 +12,10 @@
  * Note: this assumes the `identity` schema (like `api`) is exposed via
  * the Supabase project's Data API schema configuration -- a deployment
  * prerequisite for the whole backend, not something introduced here.
+ *
+ * Not currently called by any dashboard -- intentional, not a defect;
+ * see app/auth/middleware.ts's header and docs/technical-debt.md's
+ * "Reclassified" entry for why.
  */
 
 import { createSupabaseClient } from '../config/supabase';

@@ -1,7 +1,8 @@
 # Phase 5 Roadmap
 
 Status:
-ACTIVE
+COMPLETE — all 15 steps implemented and reviewed; see "Roadmap
+Status" below and `docs/phase-5-completion.md`
 
 Phase:
 Phase 5 — Application Implementation

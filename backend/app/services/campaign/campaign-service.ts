@@ -21,10 +21,21 @@
  * (`identity.is_admin() or auth.uid() is null`) -- this service adds
  * no authorization decision of its own; RLS/the procedure's own check
  * remains authoritative.
+ *
+ * Observability (docs/technical-debt.md TD-003): every mutating call
+ * records a structured log on failure and an audit event + metric on
+ * success, using the existing app/utils/{logger,audit,metrics,tracing}
+ * utilities exactly as designed -- no new logging framework, no change
+ * to any function's parameters, return type, or error-throwing
+ * contract.
  */
 
 import { createSupabaseClient } from '../../config/supabase';
 import type { CampaignPerformance, CampaignSummary } from '../../domains/campaign/campaign';
+import { recordAuditEvent } from '../../utils/audit';
+import { logger } from '../../utils/logger';
+import { recordMetric } from '../../utils/metrics';
+import { generateRequestId } from '../../utils/tracing';
 
 interface CampaignSummaryRow {
   campaign_id: string;
@@ -146,14 +157,25 @@ export async function distributeCampaign(
   campaignId: string,
   communityIds: readonly string[],
 ): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client
     .schema('api')
     .rpc('distribute_campaign', { p_campaign_id: campaignId, p_community_ids: communityIds });
 
   if (error) {
+    logger.error('campaign.distribute.failed', { requestId, campaignId, communityIds, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'campaign.distribute',
+    entityType: 'campaign',
+    entityId: campaignId,
+    metadata: { communityIds, requestId },
+  });
+  recordMetric('campaign.distributed', 1, { campaignId });
 }
 
 export interface RotateCampaignParams {
@@ -165,6 +187,7 @@ export interface RotateCampaignParams {
 }
 
 export async function rotateCampaign(accessToken: string, params: RotateCampaignParams): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('rotate_campaign', {
     p_campaign_id: params.campaignId,
@@ -175,33 +198,81 @@ export async function rotateCampaign(accessToken: string, params: RotateCampaign
   });
 
   if (error) {
+    logger.error('campaign.rotate.failed', { requestId, ...params, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: params.createdBy,
+    action: 'campaign.rotate',
+    entityType: 'campaign',
+    entityId: params.campaignId,
+    metadata: {
+      oldCommunityId: params.oldCommunityId,
+      newCommunityId: params.newCommunityId,
+      cooldownDays: params.cooldownDays,
+      requestId,
+    },
+  });
+  recordMetric('campaign.rotated', 1, { campaignId: params.campaignId });
 }
 
 export async function closeCampaign(accessToken: string, campaignId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('close_campaign', { p_campaign_id: campaignId });
 
   if (error) {
+    logger.error('campaign.close.failed', { requestId, campaignId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'campaign.close',
+    entityType: 'campaign',
+    entityId: campaignId,
+    metadata: { requestId },
+  });
+  recordMetric('campaign.closed', 1, { campaignId });
 }
 
 export async function archiveCampaign(accessToken: string, campaignId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('archive_campaign', { p_campaign_id: campaignId });
 
   if (error) {
+    logger.error('campaign.archive.failed', { requestId, campaignId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'campaign.archive',
+    entityType: 'campaign',
+    entityId: campaignId,
+    metadata: { requestId },
+  });
+  recordMetric('campaign.archived', 1, { campaignId });
 }
 
 export async function restoreCampaign(accessToken: string, campaignId: string): Promise<void> {
+  const requestId = generateRequestId();
   const client = createSupabaseClient(accessToken);
   const { error } = await client.schema('api').rpc('restore_campaign', { p_campaign_id: campaignId });
 
   if (error) {
+    logger.error('campaign.restore.failed', { requestId, campaignId, error: error.message });
     throw new Error(error.message);
   }
+
+  recordAuditEvent({
+    actorUserId: null,
+    action: 'campaign.restore',
+    entityType: 'campaign',
+    entityId: campaignId,
+    metadata: { requestId },
+  });
+  recordMetric('campaign.restored', 1, { campaignId });
 }

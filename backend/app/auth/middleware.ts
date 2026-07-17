@@ -6,10 +6,20 @@
  * Implemented as an explicit function a controller calls, rather than a
  * Next.js root `middleware.ts` -- per docs/backend-architecture.md's
  * "Thin API Layer" principle, authentication is a controller
- * responsibility (request validation, authentication, authorization,
- * calling services, formatting responses), so controllers invoke this
- * helper directly. No controllers exist yet (later Phase 5 steps); this
- * is the shared entry point they will call.
+ * responsibility, so controllers invoke this helper directly.
+ *
+ * Status as of Phase 5 completion: no API route/controller layer
+ * (`app/api/`) was built during Phase 5 -- no roadmap step required
+ * one (verified against all 15 steps' Deliverables/Exit Criteria).
+ * Every roadmap step routed data access through Server Components
+ * calling domain services directly instead (see
+ * app/config/supabase-server.ts's cookie-based session reading, which
+ * the dashboards actually use). This function, session.ts, and
+ * roles.ts are intentional, tested, working infrastructure prepared
+ * for whenever a Controller layer is actually built -- not dead code,
+ * not technical debt, just correctly idle until that layer exists.
+ * See docs/technical-debt.md's "Reclassified" entry for the full
+ * evidence-based determination.
  *
  * Contains no business logic: it only resolves identity and roles and
  * fails closed. Authorization decisions beyond that remain with RLS.

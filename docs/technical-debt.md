@@ -97,3 +97,131 @@ Database Webhooks) is introduced via a new migration, and
 updated accordingly. At that point,
 `notification-dispatch-job.ts` should be migrated off the direct
 `analytics.analytics_events` read.
+
+---
+
+## TD-003 — Observability utilities built but not wired into any call site — RESOLVED
+
+**Logged:** 2026-07-16, during the Phase 5 Final Hardening audit (Chief Architect review). **Classification sharpened:** 2026-07-17, per a focused evidence-based review against the exact roadmap/architecture text (see below). **Resolved:** 2026-07-17, as the final Phase 5 implementation task, per Founder direction.
+
+**Resolution:** `recordAuditEvent()`, `recordMetric()`, and `generateRequestId()` are now called from every critical mutating operation identified below, using the utilities exactly as designed (no new logging framework, no change to any function's parameters, return type, or error-throwing contract):
+
+```text
+Campaign Service:      distributeCampaign, rotateCampaign,
+                       closeCampaign, archiveCampaign, restoreCampaign
+Intelligence Service:  awardBadge, revokeBadge,
+                       recalculateMemberReputation,
+                       recalculateCreatorReputation,
+                       recalculateCommunityReputation,
+                       createPerformanceBonus
+Notification job:      runNotificationDispatch (per-event outcome)
+```
+
+Each records a structured `logger.error` on failure (before the existing `throw` -- unchanged) and a `recordAuditEvent()` + `recordMetric()` on success. `actorUserId` is set to the resolved actor where the function already receives one as a parameter (`rotateCampaign`'s `createdBy`, `createPerformanceBonus`'s `approvedBy`); elsewhere it is `null`, since no mutating function currently receives a resolved caller identity and inventing that resolution would mean reintroducing the Auth Service path this project just determined is intentionally not integrated (the Reclassified entry above) -- not a workaround, but a boundary this fix respects rather than crosses.
+
+Re-verified after wiring: `npm run lint`, `npm run typecheck`, `npm test` (39/39 passing, console output confirms the new log/audit/metric lines genuinely fire during the existing tests, not just compile), and `npm run build` all pass. `service_role` re-confirmed absent from the built client bundle.
+
+**Original entry, preserved for the record:**
+
+**Where:**
+`backend/app/utils/logger.ts`, `audit.ts`, `metrics.ts`, `tracing.ts`.
+
+**Classification: incomplete Phase 5 deliverable — evaluated against Step 15's own Deliverables text.**
+
+`docs/phase-5-roadmap.md` Step 15's Deliverables (verbatim): "Monitoring
+and observability wiring (structured logs, audit records, metrics,
+tracing identifiers)." Step 15's Objective explicitly cites its
+governing source: "per `docs/backend-architecture.md`'s Observability
+and External Integrations sections." That section (verbatim): "Every
+critical operation should produce: structured logs, audit records,
+metrics, tracing identifiers. **This area will be expanded during
+production readiness.**" Step 15 *is* production readiness by its own
+Objective's cross-reference — so this was the roadmap-designated point
+for that Phase 4 aspiration to become real, not a future step.
+
+What exists: four correctly-implemented, vendor-neutral utilities. What
+does not exist: any call site. A full grep found zero call sites for
+`recordAuditEvent()`, `recordMetric()`, or `generateRequestId()`
+anywhere in `app/services/`, `app/jobs/`, or `app/(dashboards)/`.
+"Wiring," in any plain reading of Step 15's own Deliverables text,
+means connecting these to actual critical operations -- not building
+standalone functions nothing invokes.
+
+**Important qualifier, stated precisely rather than smoothed over:**
+Step 15's actual Exit Criteria ("Production environment operational" /
+"`service_role` key confirmed absent from every client-shipped
+artifact" / "Rollback plan documented") does **not** test for
+observability integration at all. Under the standard used to gate every
+other step in this engagement (Exit Criteria is the pass/fail bar,
+Deliverables is the target), Step 15 technically passed its own gate.
+This is itself a genuine gap in the approved roadmap -- its Deliverables
+and Exit Criteria for Step 15 don't match each other -- not something
+to paper over. Both facts are true at once: Step 15 passed its stated
+Exit Criteria, and its Deliverables text was not fully realized.
+
+**Why it's debt:**
+Today, no critical operation (badge award, campaign distribution,
+wallet-affecting mutation, notification dispatch) leaves an audit trail
+or emits a metric. If this shipped to production as-is, that would be
+invisible until something went wrong.
+
+**Resolution condition:**
+Each domain service's mutating calls (campaign distribute/rotate/
+close/archive/restore, badge award/revoke, reputation recalculation,
+performance bonus creation, notification dispatch) are updated to call
+`recordAuditEvent()`/`recordMetric()` at their success/failure points,
+and a `requestId` (from `generateRequestId()`) is threaded through each
+request's logger calls. This is unfinished Phase 5 Step 15 work per its
+own Deliverables text, not optional future polish -- it should be
+scheduled as real implementation work, not carried indefinitely as
+background debt.
+
+---
+
+## Reclassified — Auth Service (Step 3) is intentional future infrastructure, not technical debt
+
+**Originally logged:** 2026-07-16, during the Phase 5 Final Hardening audit, as "TD-004 — Two parallel, non-integrated session-resolution paths." **Reclassified:** 2026-07-17, per a focused evidence-based review against the exact roadmap text. Removed from the active debt list below (renumber note: no TD-004 exists; do not reuse the number for an unrelated item, to keep this log's history traceable).
+
+**Where:**
+`backend/app/auth/{session.ts, roles.ts, middleware.ts}` (Phase 5 Step
+3, Bearer-token-based) vs. `backend/app/config/supabase-server.ts`
+(Phase 5 Step 13, cookie-based).
+
+**Why this is not debt:**
+A debt item requires an approved document or roadmap step to have
+required something that wasn't delivered. Searching every one of the
+15 roadmap steps' Deliverables and Exit Criteria for `controller`,
+`app/api`, `route handler`, or `authenticate()` being invoked returns
+exactly three matches, all inside Step 1's folder-scaffold list and
+Step 3's own text ("Auth middleware entry point (per the Thin
+Controller principle — authentication is a controller
+responsibility...)"). **No roadmap step, at any point, requires
+building the Controller/API-route layer that would call it.**
+
+Step 3's own Deliverables (Supabase client wrapper, Session resolver,
+Role resolver, Auth middleware entry point) and Exit Criteria
+("Login/logout/session validation functional," "Role resolution
+matches identity.user_roles live," "service_role never exposed
+client-side," "RLS remains the final authorization boundary") were all
+fully satisfied *in isolation* — verified by passing unit tests
+exercising every code path, independent of whether a consumer exists.
+This is the same pattern already established and accepted for Step 2's
+Storage/AI clients (built, functional, correctly unconsumed until
+something needs them).
+
+Step 13's dashboards satisfy *their own* Deliverables/Exit Criteria
+(consume `api.*` views, handle RLS-driven empty states) via a
+different, equally valid mechanism appropriate to Server Components —
+nothing in Step 13's text required reusing Step 3's specific mechanism.
+The two mechanisms exist for two different consumption patterns (a
+future Bearer-token API layer vs. actual same-process Server
+Components), not because either step's approved requirements were left
+unmet.
+
+**Standing note (not a resolution condition, since there is nothing to resolve):**
+When an `app/api/` Controller layer is eventually built (not part of
+any current roadmap step), that work should decide then whether it
+calls the existing `app/auth/middleware.ts` (as originally designed) or
+a Route-Handler-adapted equivalent of `config/supabase-server.ts` —
+and retire whichever path is not chosen. Until that layer exists, both
+pieces of infrastructure are legitimately idle, not broken.

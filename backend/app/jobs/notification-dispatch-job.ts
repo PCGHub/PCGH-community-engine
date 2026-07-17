@@ -29,12 +29,23 @@
  * Jobs"): callers pass a `sinceCreatedAt` cursor and only events after
  * it are processed; re-running with the same cursor reprocesses the
  * same set rather than skipping or duplicating based on side effects.
+ *
+ * Observability (docs/technical-debt.md TD-003): records a structured
+ * log on a batch fetch failure, and an audit event + metric per
+ * dispatched event, using the existing
+ * app/utils/{logger,audit,metrics,tracing} utilities exactly as
+ * designed -- no new logging framework, no change to this function's
+ * signature or return type.
  */
 
 import { createSupabaseServiceClient } from '../config/supabase';
 import type { AnalyticsEvent } from '../domains/notification/notification';
 import { getEmailProvider } from '../notifications/email-provider';
 import { buildNotificationContent } from '../services/notification/notification-service';
+import { recordAuditEvent } from '../utils/audit';
+import { logger } from '../utils/logger';
+import { recordMetric } from '../utils/metrics';
+import { generateRequestId } from '../utils/tracing';
 
 interface AnalyticsEventRow {
   id: string;
@@ -71,6 +82,7 @@ export interface DispatchResult {
  * rest of the batch.
  */
 export async function runNotificationDispatch(sinceCreatedAt: string): Promise<DispatchResult[]> {
+  const requestId = generateRequestId();
   const client = createSupabaseServiceClient();
   const { data, error } = await client
     .schema('analytics')
@@ -81,6 +93,7 @@ export async function runNotificationDispatch(sinceCreatedAt: string): Promise<D
     .returns<AnalyticsEventRow[]>();
 
   if (error || !data) {
+    logger.error('notification.dispatch.fetch_failed', { requestId, sinceCreatedAt, error: error?.message });
     return [];
   }
 
@@ -98,6 +111,15 @@ export async function runNotificationDispatch(sinceCreatedAt: string): Promise<D
 
     const delivery = await provider.send(content.recipientUserId, content.subject, content.body);
     results.push({ eventId: event.id, dispatched: delivery.delivered, reason: delivery.reason });
+
+    recordAuditEvent({
+      actorUserId: null,
+      action: 'notification.dispatch',
+      entityType: 'analytics_event',
+      entityId: event.id,
+      metadata: { eventType: event.eventType, dispatched: delivery.delivered, reason: delivery.reason, requestId },
+    });
+    recordMetric('notification.dispatched', delivery.delivered ? 1 : 0, { eventType: event.eventType });
   }
 
   return results;
