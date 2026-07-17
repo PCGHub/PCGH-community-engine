@@ -10,13 +10,13 @@ Hierarchy Level:
 Level 5 — Historical Documents
 
 Status:
-COMPLETE — APPROVED WITH CONDITIONS
+🔒 FROZEN — v0.5.0 (see Addendum 3 for the full Freeze Record)
 
 Review Status:
-REVIEWED — APPROVED WITH CONDITIONS
+REVIEWED — APPROVED — FROZEN
 
 Date:
-2026-07-16
+2026-07-16 (original approval); frozen 2026-07-17
 
 ---
 
@@ -390,3 +390,96 @@ Re-verified after both changes: `npm run lint`, `npm run typecheck`, `npm test` 
 **Updated Final Score: 10/10.** With TD-004 correctly reclassified as intentional (not debt) and TD-003 actually resolved rather than carried forward, no active, unresolved technical debt or known defect remains against the approved Phase 5 scope.
 
 **Recommendation: Freeze Phase 5. Begin Phase 6.**
+
+---
+
+## Addendum 3: Founder Acceptance — Phase 5 Freeze Record
+
+```text
+Phase status:
+FROZEN
+
+Version:
+v0.5.0
+
+Versioning strategy (newly adopted, effective this release):
+0.<phase-number>.0 during pre-1.0 development -- the minor version
+tracks the phase number at each freeze. First applied here: Phase 5
+freeze -> v0.5.0. Recorded so future phases follow the same
+convention without re-deciding it each time.
+
+Git commit hash:
+4bbba74534019fe195ec11448df4c0be3bcfe9ee (short: 4bbba74)
+"Freeze Phase 5 v0.5.0 -- final architectural baseline"
+
+Date:
+2026-07-17
+
+Final architecture status:
+Thin Service principle, Domain ownership, API-schema-only access,
+RLS-as-final-authorization-boundary, and Security boundaries all
+hold with zero unauthorized deviations, re-verified fresh at every
+review pass in this document. Two narrow, explicitly-authorized
+exceptions remain (TD-001, TD-002), both bounded to a single file
+each and traceable to their governing architecture document. TD-004
+confirmed as intentional, correctly out-of-scope infrastructure
+(Step 3's Authentication Service), not a defect.
+
+Test summary:
+15 suites / 39 tests, all passing. npm run lint, npm run typecheck,
+and npm run build all pass clean. Coverage is mocked-client
+integration plus static security verification -- no live Supabase/
+Postgres project has validated this implementation end-to-end (see
+Known Future Work).
+
+Documentation status:
+IMPLEMENTATION_STATUS.md, phase-5-roadmap.md, phase-5-completion.md
+(this document), documentation-governance-framework.md,
+frontend-architecture.md, backend-architecture.md,
+authentication-architecture.md, service-architecture.md,
+domain-architecture.md, technical-debt.md, and architecture-decisions.md
+are synchronized as of this freeze. One previously-known, Founder-
+acknowledged discrepancy remains by deliberate prior instruction, not
+oversight: implementation-rules.md/phase-2-roadmap.md's "Phase 2"
+framing versus the project's actual 5-phase history
+(documentation-governance-framework.md Section 1a).
+
+ADR status:
+13 approved (001-012, 016). 4 pending, all open and unresolved by
+design, none worked around in any Phase 5 implementation:
+ADR-013 (Creator Protection Visibility), ADR-014 (Public Reputation
+Leaderboards), ADR-015 (Reputation & Trust Scoring Model), ADR-017
+(Payment Credit Pipeline).
+
+Remaining accepted technical debt:
+TD-001 -- identity.* RPC calls in the Authentication Service
+  (bounded to session.ts/roles.ts; explicitly authorized by
+  authentication-architecture.md).
+TD-002 -- analytics.analytics_events read via service_role in the
+  notification dispatch job (bounded to one file; explicitly
+  authorized by domain-architecture.md's Notification Domain
+  section).
+Both accepted as permanent, bounded exceptions unless/until their
+  respective api.* wrappers are built -- not scheduled for Phase 6,
+  not blocking the freeze.
+
+Known future work (Phase 6):
+- Resolve ADR-013, ADR-014, ADR-015, ADR-017.
+- When a Controller/API-route layer is eventually built (not
+  required by any Phase 5 step), decide whether it adopts Step 3's
+  Authentication Service or a Route-Handler-adapted equivalent of
+  config/supabase-server.ts.
+- Flutterwave credit-purchase integration, blocked on ADR-017.
+- Validate this implementation against a live Supabase/Postgres
+  project -- never done in this development environment.
+- Member Dashboard (api.member_dashboard_view) -- out of Step 13's
+  named scope, not an oversight.
+
+Founder approval:
+GRANTED -- 2026-07-17.
+
+Chief Architect approval:
+GRANTED -- 2026-07-17, following the Final Acceptance Audit, the
+evidence-based TD-003/TD-004 review, and TD-003's resolution
+recorded above.
+```
