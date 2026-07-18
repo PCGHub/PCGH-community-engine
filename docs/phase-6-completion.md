@@ -361,10 +361,8 @@ freeze):
 v0.6.0.
 
 Git commit hash:
-[recorded in a follow-up commit, per the same two-commit pattern
-used at the Phase 5 freeze (4bbba74 + be9af94) -- this document
-cannot cite its own commit's hash in the same commit that creates
-it]
+d45207b2ff6350337c971580246a9ede9c2f6caf (short: d45207b)
+"Freeze Phase 6 v0.6.0 -- API Foundation & Application Layer"
 
 Date:
 2026-07-18
