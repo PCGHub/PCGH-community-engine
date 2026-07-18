@@ -8,18 +8,17 @@
  * "Thin API Layer" principle, authentication is a controller
  * responsibility, so controllers invoke this helper directly.
  *
- * Status as of Phase 5 completion: no API route/controller layer
- * (`app/api/`) was built during Phase 5 -- no roadmap step required
- * one (verified against all 15 steps' Deliverables/Exit Criteria).
- * Every roadmap step routed data access through Server Components
- * calling domain services directly instead (see
- * app/config/supabase-server.ts's cookie-based session reading, which
- * the dashboards actually use). This function, session.ts, and
- * roles.ts are intentional, tested, working infrastructure prepared
- * for whenever a Controller layer is actually built -- not dead code,
- * not technical debt, just correctly idle until that layer exists.
- * See docs/technical-debt.md's "Reclassified" entry for the full
- * evidence-based determination.
+ * Status as of Phase 6 EWP-001: this function is now the Controller
+ * layer's authentication entry point, called from
+ * app/api/_lib/handler.ts's withAuth() wrapper for every v1 route,
+ * exactly as anticipated when it was built in Phase 5 Step 3 and left
+ * unconsumed through the rest of Phase 5 (see docs/technical-debt.md's
+ * "Reclassified" entry for the evidence-based determination that this
+ * was intentional, not dead code). The dashboards continue to use
+ * app/config/supabase-server.ts's cookie-based session reading
+ * instead -- the two mechanisms serve two different callers (a
+ * browser rendering a page vs. an HTTP client calling the API), per
+ * docs/api-specification.md Section 4.
  *
  * Contains no business logic: it only resolves identity and roles and
  * fails closed. Authorization decisions beyond that remain with RLS.

@@ -53,7 +53,6 @@ architecture.md
 database-architecture.md
 system-flow.md            [placeholder — see Section 9]
 security.md                [placeholder — see Section 9]
-api-specification.md       [placeholder — see Section 9]
 database-schema.md         [placeholder — see Section 9]
 phase-4-kickoff.md
 phase-5-roadmap.md
@@ -63,6 +62,10 @@ authentication-architecture.md
 service-architecture.md
 domain-architecture.md
 frontend-architecture.md
+api-specification.md       (populated + APPROVED/LOCKED 2026-07-17
+                           -- canonical API Layer Architecture,
+                           EWP-001)
+phase-6-charter.md         (Phase 6 kickoff, 2026-07-17)
 
 ------------------------------------------------
 
@@ -402,7 +405,7 @@ Known placeholders as of this document's creation:
 ```text
 docs/system-flow.md
 docs/security.md
-docs/api-specification.md
+docs/api-specification.md  POPULATED 2026-07-17 -- see below
 docs/database-schema.md
 docs/roadmap.md
 docs/feature flag engine.md
@@ -410,6 +413,8 @@ docs/audience Matching Engine
 ```
 
 Per the Documentation Governance Freeze discussion, these are intentionally left unresolved by this framework. The agreed sequencing is: complete the Documentation Governance Freeze first, then populate or retire each placeholder using the locked schema and architecture documents as source material — not before, and not as an emergency backfill.
+
+**`docs/api-specification.md` populated, 2026-07-17:** per this section's own sequencing rule, deferred until "Backend Services and the API layer move from design to build" (Section 10) — Phase 6's "EWP-001 — API Foundation & Application Layer" is exactly that moment. Now contains the API Layer Architecture (DRAFT, pending Founder/Chief Architect review), not the originally-anticipated raw endpoint-by-endpoint specification — its actual content turned out to be architectural (routing, versioning, auth integration, response contract, etc.) rather than a specification of already-built endpoints, since none existed yet to specify.
 
 ---
 
@@ -546,7 +551,8 @@ Hierarchy Level:
 
 Entries classified:
 Level 1: 8
-Level 2: 16 (4 placeholder)
+Level 2: 17 (3 placeholder — api-specification.md populated
+  2026-07-17; phase-6-charter.md added 2026-07-17)
 Level 3: 9
 Level 4: 17 (2 placeholder)
 Level 5: 7 (1 placeholder)

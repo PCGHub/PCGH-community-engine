@@ -218,10 +218,44 @@ future Bearer-token API layer vs. actual same-process Server
 Components), not because either step's approved requirements were left
 unmet.
 
-**Standing note (not a resolution condition, since there is nothing to resolve):**
-When an `app/api/` Controller layer is eventually built (not part of
-any current roadmap step), that work should decide then whether it
-calls the existing `app/auth/middleware.ts` (as originally designed) or
-a Route-Handler-adapted equivalent of `config/supabase-server.ts` —
-and retire whichever path is not chosen. Until that layer exists, both
-pieces of infrastructure are legitimately idle, not broken.
+**Standing note, actioned 2026-07-17 (Phase 6, EWP-001):** The Controller layer anticipated above was built, and the decision was made in `docs/api-specification.md` Section 4: `app/api/_lib/handler.ts`'s `withAuth()` wrapper calls the existing `app/auth/middleware.ts`'s `authenticate()` exactly as originally designed. `config/supabase-server.ts` is not retired -- it remains the correct mechanism for the four existing dashboards, a genuinely different caller (a browser rendering a page) from the API layer's callers (an HTTP client sending a Bearer token). Both pieces of infrastructure are now actively in use, for their respective consumers; neither is idle.
+
+---
+
+## TD-005 — `distribute` route can return 403 for a genuinely missing campaign, not 404 — RESOLVED
+
+**Logged:** 2026-07-18, during Phase 6 EWP-002 (Campaign API). **Resolved:** 2026-07-18, EWP-002 hardening pass, per Founder/Chief Architect directive.
+
+**Resolution:** A full audit of every `raise exception` in `008_create_api_schema.sql` (not a guess from one route) found the resolution condition below already satisfied -- two real, cross-domain cases (Campaign and Intelligence) sharing an identical `"Only administrators may "` prefix convention, plus two `"... not found"` cases with a confirmed-safe admin-check-always-first ordering. `app/api/_lib/errors.ts` now classifies via: (1) typed errors (`NotFoundError`/`ConflictError`/`ForbiddenError`, a forward-compatible escape hatch, unused by any current service), then (2) a generic, domain-agnostic message-pattern fallback for the existing plain `Error` throws (unmodified) -- admin-gate prefix → 403, not-found suffix → 404, anything else → 500 without leaking the internal message. Full design, security analysis (why 403-vs-404 doesn't leak resource existence to non-admins), and the "no genuine 409 case exists today" finding are recorded in `docs/api-specification.md` Section 7, updated *before* this code change per the document's own Amendment Rule. Verified: `lint`/`typecheck`/`test` (99/99)/`build` all pass; new unit tests (`tests/unit/api/errors.test.ts`) and integration tests (`tests/integration/api/campaigns/distribute.test.ts`) prove the 403/404/500 classification for the real route, not just the shared utility in isolation.
+
+**Original entry, preserved for the record:**
+
+**Where:**
+`backend/app/api/v1/campaigns/[campaignId]/distribute/route.ts`, and by the same mechanism, potentially any other action route whose underlying `api.*` procedure can raise for more than one reason.
+
+**What:**
+`docs/api-specification.md` Section 7's status-code mapping deliberately maps any thrown service error to 403 Forbidden, on the stated assumption that "every current mutating service function's only failure mode... is its own SECURITY DEFINER routine's admin-only check." `api.distribute_campaign()`'s actual body (migration 008) also raises `'Campaign % not found'` when `p_campaign_id` doesn't exist -- a second, genuinely different failure mode Section 7's caveat already flagged as something that "would warrant 500 instead" (or, more precisely here, 404) but explicitly left as "an open question, not resolved by this document." EWP-002 confirmed this is a real case, not a hypothetical.
+
+**Why it's debt:**
+A client calling `distribute` on a non-existent campaign ID gets `403 Forbidden` with the message "Campaign ... not found" -- a confusing, semantically wrong status code for that situation, even though the error message text is accurate.
+
+**Resolution condition:**
+`app/api/_lib/errors.ts`'s mapping is extended to distinguish error causes -- either by having domain services throw typed/discriminated errors (a service-layer change) or by pattern-matching known message prefixes (fragile, not preferred) -- once a second or third real case like this exists across more domain routes, so the fix is designed from more than one example rather than guessed from one. Not fixed in EWP-002 itself, per its own scope ("reuse the established... error-handling infrastructure," not change it).
+
+---
+
+## TD-006 — `close`/`archive`/`restore` silently no-op instead of failing for a non-existent campaign
+
+**Logged:** 2026-07-18, discovered during the TD-005 error-classification audit (EWP-002 hardening pass).
+
+**Where:**
+`api.close_campaign()`, `api.archive_campaign()`, `api.restore_campaign()` (migration 008) -- and by extension, `backend/app/api/v1/campaigns/[campaignId]/{close,archive,restore}/route.ts`.
+
+**What:**
+Unlike `distribute_campaign()`/`rotate_campaign()`, these three procedures never raise a "not found" exception -- each is a bare `UPDATE ... WHERE id = p_campaign_id [AND ...]` with no existence check. A non-existent or wrong-status campaign ID simply produces a 0-row update and the procedure completes without error. The API route therefore returns `200 { data: null }` (success) for a request that had no actual effect.
+
+**Why it's debt:**
+This is not an error-classification problem (TD-005's fix cannot touch it, since no error is ever thrown) -- it's a missing signal at the SQL layer. A caller has no way to distinguish "the campaign was closed" from "nothing happened because the campaign ID was wrong."
+
+**Resolution condition:**
+Add an existence/status check (`if not found then raise exception ...`) to each of the three procedures, matching `distribute_campaign()`'s and `rotate_campaign()`'s existing pattern -- a new migration (never modifying 001-009), not an application-layer workaround. Out of scope for the TD-005 hardening pass, which was explicitly bounded to error *classification*, not to changing what SQL procedures do or don't raise.

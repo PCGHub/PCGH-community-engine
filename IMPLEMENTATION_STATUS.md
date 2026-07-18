@@ -172,15 +172,27 @@ See `docs/phase-5-completion.md` for the full Founder Acceptance Report and its 
 
 ---
 
+## Phase 6 — API Foundation & Application Layer
+
+Status: 🚧 IN PROGRESS
+
+See `docs/phase-6-charter.md` for full detail (Mission, Principles, Scope, EWP Approval Log). Summary only, not duplicated here:
+
+- [x] EWP-001 — API Foundation (shared foundation: `app/api/_lib/`, `/api/v1/health`) — delivered 2026-07-17
+- [x] EWP-002 — Campaign API (8 routes) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. TD-005 (error classification) resolved; TD-006 opened as legitimate, unfixed open debt.
+- [ ] EWP-003 onward — Discovery, Protection, Intelligence, Analytics, Governance, Payments, Notifications — not yet scoped
+
+---
+
 ## Project Status
 
-**Current Phase:** Phase 5 — Application Implementation — 🔒 FROZEN (v0.5.0)
+**Current Phase:** Phase 6 — API Foundation & Application Layer — 🚧 IN PROGRESS (EWP-002 frozen)
 
-**Current Task:** Awaiting Founder direction to begin Phase 6
+**Current Task:** Holding for EWP-003 scope proposal, per Founder/Chief Architect direction
 
-**Overall Progress:** 100% (Phase 1-5, frozen); 4 ADRs remain open as known future work; TD-001/TD-002 remain as accepted technical debt
+**Overall Progress:** 100% (Phase 1-5, frozen); Phase 6 EWP-001/EWP-002 delivered and frozen; 4 ADRs and TD-001/TD-002/TD-006 remain open as known, accepted, unresolved items
 
-**Last Updated:** 2026-07-17
+**Last Updated:** 2026-07-18
 
 ---
 
@@ -205,3 +217,7 @@ See `docs/phase-5-completion.md` for the full Founder Acceptance Report and its 
 ## Phase 5 — Application Implementation
 
 ████████████████████ 100% 🔒 FROZEN — v0.5.0
+
+## Phase 6 — API Foundation & Application Layer
+
+██████████████░░░░░░  70% 🚧 IN PROGRESS — EWP-002 frozen

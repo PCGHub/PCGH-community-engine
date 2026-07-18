@@ -129,6 +129,12 @@ Where an external integration is not yet architecturally approved (email provide
 
 **Source:** `app/notifications/email-provider.ts`, `app/ai/client.ts` — both `isConfigured()`-gated stubs, neither pretending to be a real integration.
 
+### EPR-007 — Fix Cross-Cutting Failures With a Shared Mechanism, Never a Per-Route Patch
+
+When a defect spans multiple routes or domains, audit the actual failure surface across all of them before designing the fix, and implement the correction once, in the shared layer — never as a special case in the one route that happened to surface it. Prefer a typed, explicit escape hatch for future code over fragile pattern-matching, but don't retrofit working, already-tested code just to use it — a generic fallback for the existing behavior is legitimate when the pattern is verified consistent across multiple, unrelated call sites.
+
+**Source:** TD-005's resolution (Phase 6 EWP-002 hardening) — a full audit of every exception raised across two domains (Campaign, Intelligence) found one 100%-consistent admin-check convention and one 100%-consistent not-found convention, both handled by a single classifier added to `app/api/_lib/errors.ts`. No domain service was modified.
+
 ---
 
 # Development Standards (DSR)
@@ -197,6 +203,12 @@ Compliance/audit reviews classify each finding (Critical / Major / Minor / Cosme
 
 **Source:** The refined Chief Architect Acceptance Audit framework adopted for Phase 5's freeze decision, which explicitly overrode a more permissive initial recommendation once the stricter, predefined rule was applied.
 
+### QGR-006 — Integration Tests Are a Per-Endpoint Deliverable, Not Deferred
+
+Every new API route ships, as part of the same work package that introduces it, with: unit tests for any new logic, an integration test under `backend/tests/integration/api/` exercising the complete HTTP request lifecycle for that route, and documentation updates reflecting the new endpoint or any architectural clarification it required. None of the three is deferred to a later "testing phase" — the route is not done until all three exist.
+
+**Source:** Founder's Phase 6 Testing Directive, 2026-07-17, issued before EWP-002 (the first domain-endpoint work package) began, specifically to prevent Phase 5's own pattern — a dedicated Testing step (Step 14) arriving after implementation (Steps 1-13) — from repeating at the per-endpoint level in Phase 6.
+
 ---
 
 # Amendment Process
@@ -215,7 +227,7 @@ Hierarchy Level:
 Level 1 — Project Governance (Live)
 
 Rules recorded:
-7 AGR, 6 EPR, 5 DSR, 5 QGR (23 total)
+7 AGR, 7 EPR, 5 DSR, 6 QGR (25 total)
 
 Status:
 ACTIVE
