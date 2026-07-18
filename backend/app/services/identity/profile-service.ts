@@ -16,6 +16,22 @@
  * avatar_url) -- adding one is a new migration decision, not something
  * this step invents. See docs/technical-debt.md if a profile-update
  * flow is needed.
+ *
+ * getUserProfile() (added Phase 6, EWP-007, Founder/Chief Architect
+ * approved 2026-07-18): a role-neutral third read, added because
+ * neither getCreatorProfile() nor getMemberProfile() is an accurate
+ * name for "the calling user's own profile" -- identity.user_roles
+ * (migration 001) makes 'member'/'creator'/'admin' independently
+ * assignable per user, so a member-only caller is not a creator and
+ * calling getCreatorProfile() on their behalf would misname who they
+ * are, even though the data returned is identical either way (both
+ * views are unconditional `FROM identity.users`, no role filter --
+ * verified directly against 008_create_api_schema.sql). This function
+ * queries api.creator_dashboard_view internally only because the two
+ * views are proven data-equivalent for these six columns, never
+ * because the caller is assumed to hold the creator role. Introduces
+ * no new migration, view, table, or RLS policy -- the query is
+ * identical to getCreatorProfile()'s, renamed to make no role claim.
  */
 
 import { createSupabaseClient } from '../../config/supabase';
@@ -62,6 +78,22 @@ export async function getMemberProfile(accessToken: string, userId: string): Pro
   const { data, error } = await client
     .schema('api')
     .from('member_dashboard_view')
+    .select('user_id, user_code, username, full_name, avatar_url, status')
+    .eq('user_id', userId)
+    .maybeSingle<ProfileRow>();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return toUserProfile(data);
+}
+
+export async function getUserProfile(accessToken: string, userId: string): Promise<UserProfile | null> {
+  const client = createSupabaseClient(accessToken);
+  const { data, error } = await client
+    .schema('api')
+    .from('creator_dashboard_view')
     .select('user_id, user_code, username, full_name, avatar_url, status')
     .eq('user_id', userId)
     .maybeSingle<ProfileRow>();

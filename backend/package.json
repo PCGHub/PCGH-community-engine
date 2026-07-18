@@ -1,6 +1,6 @@
 {
   "name": "pcgh-backend",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "PCGH Community Engine backend application. Stack per CLAUDE.md and docs/backend-architecture.md: Next.js, TypeScript, Supabase. See backend/README.md.",
   "scripts": {

@@ -96,6 +96,73 @@ app/api/v1/campaigns/[campaignId]/restore/route.ts       POST
 
 **Built, EWP-002 (2026-07-18):** All seven routes above, plus one additive read route not originally listed here -- `app/api/v1/campaigns/[campaignId]/performance/route.ts` (GET, per `getCampaignPerformance`), an existing campaign capability per EWP-002's own scope ("expose only existing campaign capabilities"). A routine, non-deviating addition per the Amendment Rule, not a deviation.
 
+**Built, EWP-003 (2026-07-18) -- Discovery API:**
+
+```text
+app/api/v1/discovery/route.ts                    GET (list), per
+                                                  listDiscoverySummaries
+app/api/v1/discovery/[opportunityId]/route.ts    GET (one), per
+                                                  getDiscoverySummary
+```
+
+Discovery Domain exposes no mutating service function (`app/services/discovery/discovery-service.ts` has exactly these two exports; distribution remains Campaign Domain's `distribute_campaign()`, already exposed under `campaigns/`). Per the Minimum Necessary Endpoint Principle, only these two resource routes are exposed -- no action route exists because no non-CRUD Discovery service function exists to justify one. Both routes reuse `withAuth`, `apiSuccess`/`apiError`, and (for the list route) `parsePaginationParams`/`paginate` unchanged from EWP-001/EWP-002; no new `_lib` code was added. `opportunityId` is treated as an opaque path string, matching `campaigns/[campaignId]/route.ts`'s established convention -- no app-layer UUID validation exists anywhere in the API layer, and a malformed id already resolves safely to 404 via the service/database boundary rather than a 500.
+
+**Built, EWP-004 (2026-07-18) -- Protection API:**
+
+```text
+app/api/v1/protection/exclusions/route.ts        GET (list), per
+                                                  listOwnExclusions
+```
+
+Protection Domain exposes exactly one service function, `listOwnExclusions` (`app/services/protection/protection-service.ts`) -- no `get*` function exists, so there is no single-resource route. No mutation route exists either. Per the Minimum Necessary Endpoint Principle, this is the entire justified surface. The route reuses `withAuth`, `apiSuccess`, and `parsePaginationParams`/`paginate` unchanged; no new `_lib` code was added. The underlying RLS policy (`community_exclusions_creator_select`, migration 004) is self-only with no admin bypass -- unlike Campaign/Discovery's `... or identity.is_admin()` -- and the route does not reinterpret this at the application layer. `listOwnExclusions` deliberately never returns a cooldown field pending `ADR-013`; the controller adds no field of its own, so it cannot reintroduce what the service already omits -- verified by an explicit integration-test assertion (`tests/integration/api/protection/list.test.ts`).
+
+**Built, EWP-005 (2026-07-18) -- Analytics API:**
+
+```text
+app/api/v1/analytics/platform/route.ts                        GET (one,
+                                                  no id), per getPlatformStatistics
+app/api/v1/analytics/communities/route.ts        GET (list), per
+                                                  listCommunityDashboards
+app/api/v1/analytics/communities/[communityId]/route.ts  GET (one), per
+                                                  getCommunityDashboard
+```
+
+Analytics Service exports zero mutating functions (it is a rollup layer, not a source of truth, per ADR-008 -- closed, not one of the four currently open ADRs) -- all three routes are reads, matching the domain's own architecture exactly. The routes reuse `withAuth`, `apiSuccess`/`apiError`, and (for the list route) `parsePaginationParams`/`paginate` unchanged; no new `_lib` code was added.
+
+**`GET /api/v1/analytics/platform` -- intentional non-disclosure semantic:** `api.platform_statistics_view` filters to zero rows for non-administrators (`where identity.is_admin()`, migration 008). A `null` result maps to `404 NOT_FOUND, "Platform statistics not available"` -- the same wording/status already used for `campaigns/[campaignId]/performance/route.ts`'s null-because-gated precedent. This 404 must never be read as evidence the resource doesn't exist; it is the correct, fail-closed response for both "no such thing" and "you may not see this," and the two are deliberately never distinguished, per the Founder's explicit instruction that distinguishing them would itself be a disclosure.
+
+**`GET /api/v1/analytics/communities` / `.../{communityId}` -- corrected RLS picture (traced directly against migration SQL during EWP-005, superseding an inaccurate citation in the EWP-005 proposal):** `api.community_dashboard_view` (migration 008) is not gated by a single policy. Row-level visibility -- whether a community appears at all, the 404-vs-200 boundary -- is governed by its base `FROM identity.member_communities`, gated by `member_communities_select_own`: **admin OR any member of that community** (migration 001). Four further fields degrade independently and more narrowly once the row itself is visible: `reputation_score`/`activity_score`/`consistency_score`/`trust_score` (`LEFT JOIN intelligence.community_reputation`) are **admin-only**, no creator or member self-access at all (`community_reputation_admin_manage`, migration 005); `historical_performance` (subquery on `protection.community_performance_history`) is **admin-only** (`community_performance_history_admin_select`, migration 004); `participation_rate`/`discoveries_viewed`/`discoveries_shared`/`discoveries_saved` (`LEFT JOIN analytics.community_analytics`) are gated by `community_analytics_select_creator` -- admin OR creator-of-assigned-opportunities (migration 006). A member with no admin/creator standing therefore sees the community's identity fields but `null`/`0` for the rest -- an intentional, already-locked, multi-tier design (`app/domains/analytics/analytics.ts`'s own comment: "a correct empty state, not missing data"), reproduced unchanged by this route, not reinterpreted or worked around.
+
+**ADR-015 labeling consistency (documentation correction, Phase 6 API Foundation Coverage Review, 2026-07-18):** `PlatformStatistics.avgMemberReputation`/`avgCreatorTrustScore` and `CommunityDashboard.reputationScore`/`activityScore`/`consistencyScore`/`trustScore` are sourced from the same `intelligence.*_reputation` tables that `ReputationLeaderboardEntry.isProvisional` (Intelligence Domain, EWP-006's withheld leaderboard) marks provisional pending `ADR-015`. These Analytics fields carry the identical caveat -- the scoring formulas behind every number here remain a documented placeholder, not final -- even though `CommunityDashboard`/`PlatformStatistics` have no `isProvisional` field of their own. This is a labeling correction only: no response shape, RLS, or scoring behavior changed; EWP-005's implementation, tests, and frozen status are unaffected.
+
+**Built, EWP-006 (2026-07-18) -- Intelligence Badge Catalog API:**
+
+```text
+app/api/v1/intelligence/badges/route.ts          GET (list), per
+                                                  listBadges
+```
+
+This is deliberately named the **Intelligence Badge Catalog API**, not the "Intelligence API" -- it exposes exactly one function, `listBadges`, and nothing else. `intelligence.badges` (the catalog: name, description, icon, category, criteria) is verified public to any authenticated user (`badges_select_all: using (true)`, migration 005), admin-write-only, and unrelated to reputation scoring or leaderboard ranking.
+
+**Explicitly NOT exposed, and not implied settled by this route's existence:** `getReputationLeaderboard()` (leaderboard visibility remains pending `ADR-014`), `awardBadge()`/`revokeBadge()`, the three reputation recalculation functions, and `createPerformanceBonus()` (all mutations; the last is a real-money operation shared with Payment Domain). Reputation scoring itself remains provisional pending `ADR-015`. Neither ADR is decided, weakened, or implied finalized by this catalog-only route -- verified directly against `intelligence.badges`' RLS and columns, which have no relationship to either ADR's subject matter. Payment, Governance, and Notification domains remain entirely untouched by this EWP.
+
+**Built, EWP-007 (2026-07-18) -- Identity Profile API:**
+
+```text
+app/api/v1/identity/profile/route.ts             GET (one, no id,
+                                                  self-only), per getUserProfile
+```
+
+One route, self-only, no `[userId]` route -- there is no public-profile or admin-lookup-by-ID capability approved anywhere in this architecture, and `identity.users`' RLS (`users_select_own`, migration 001) is strictly self-or-admin with no broader visibility to justify one.
+
+**Session-derived identity, not caller-supplied (explicit design decision):** identity is always resolved as `auth.session.userId`, never from a request parameter -- extending the existing "never trust client-supplied identity for a security-relevant operation" principle (previously applied to `rotateCampaign`'s `createdBy` attribution) to a read, for the first time. No route accepts a `userId` of any kind from the caller.
+
+**`getUserProfile()` -- a role-neutral third read, added to `profile-service.ts` for this EWP (Founder/Chief Architect approved 2026-07-18):** `getCreatorProfile()` and `getMemberProfile()` (both Phase 5) return byte-identical `UserProfile` data for the same user -- verified directly against `api.creator_dashboard_view`/`api.member_dashboard_view`'s SQL (migration 008), both unconditionally `FROM identity.users` with no role filter. Neither name, however, is an accurate description of an arbitrary authenticated caller: `identity.user_roles.role_name` (migration 001) is independently assignable across `member`/`creator`/`admin`, so a member-only caller is not a creator, and calling `getCreatorProfile()` on their behalf would misname who they are, even though the returned data is correct. `getUserProfile()` makes no role claim; it queries `creator_dashboard_view` internally only because the two views are proven data-equivalent for the six profile columns, never because the caller is assumed to hold any particular role. This is additive only -- `getCreatorProfile()` and `getMemberProfile()` are unchanged and remain available for whatever future consumer needs their role-specific joined data (wallet/reputation/campaign fields), which this route does not expose. No new migration, view, table, or RLS policy was introduced.
+
+**404 is a legitimate defensive outcome, not a theoretical one:** a `null` result maps to `404 NOT_FOUND, "Profile not found"`, matching the established convention -- stated here without claiming the authentication architecture guarantees a resolved session always has a matching `identity.users` row, since no document makes that guarantee explicitly.
+
+**No profile-update capability exists or was added.** `profile-service.ts`'s own header comment (unchanged) states no `api.*` function or updatable view exists for writing `identity.users` profile fields; this EWP is read-only, matching that boundary exactly.
+
 Two route shapes, chosen per endpoint based on what the underlying service function actually is:
 
 ```text
@@ -400,12 +467,27 @@ backend/
             │       ├── archive/route.ts
             │       └── restore/route.ts
             ├── discovery/
+            │   ├── route.ts
+            │   └── [opportunityId]/route.ts
             ├── protection/
+            │   └── exclusions/route.ts
             ├── intelligence/
+            │   └── badges/route.ts  (Badge Catalog only -- see
+            │       Section 2 for what remains deliberately
+            │       unexposed in this domain)
             ├── analytics/
+            │   ├── platform/route.ts
+            │   └── communities/
+            │       ├── route.ts
+            │       └── [communityId]/route.ts
             ├── governance/
             ├── payments/
-            └── notifications/
+            ├── notifications/
+            └── identity/
+                └── profile/route.ts  (added EWP-007 -- not in
+                    the charter's original domain list; see
+                    Section 2 and phase-6-charter.md's Deferred
+                    Capability Register / EWP-007 entry)
 ```
 
 Every domain folder under `app/api/v1/` corresponds to exactly one domain's existing service in `app/services/`, per Section 2 -- not yet built by EWP-001 (see EWP-001's own scope note below). `app/api/_lib/` (the underscore prefix is a Next.js App Router convention marking a folder as never routable, regardless of its contents) holds the shared foundation built by EWP-001. No new top-level `app/` directory is introduced -- `app/api/` already exists (Phase 5 Step 1 scaffold) and was always intended for this.
@@ -413,6 +495,16 @@ Every domain folder under `app/api/v1/` corresponds to exactly one domain's exis
 **EWP-001 scope note (2026-07-17):** EWP-001 delivered the shared foundation (`_lib/` and the `v1/health` liveness route) only, per its own explicit scope -- no domain-specific route (`campaigns/`, `discovery/`, etc.) is implemented yet. Those are later work packages, each conforming to this specification exactly.
 
 **EWP-002 scope note (2026-07-18):** The Campaign domain's eight routes (Section 2) are now built -- the first domain work package, and the first to exercise dynamic `[campaignId]` routing, POST bodies, and the `_lib` foundation end-to-end. `discovery/`, `protection/`, `intelligence/`, `analytics/`, `governance/`, `payments/`, and `notifications/` remain not yet implemented, per EWP-002's own scope ("the first domain work package," singular).
+
+**EWP-003 scope note (2026-07-18):** The Discovery domain's two read routes (Section 2) are now built, reusing the `_lib` foundation unchanged -- zero new files under `_lib/`. `protection/`, `intelligence/`, `analytics/`, `governance/`, `payments/`, and `notifications/` remain not yet implemented.
+
+**EWP-004 scope note (2026-07-18):** The Protection domain's single read route (Section 2) is now built, reusing the `_lib` foundation unchanged -- zero new files under `_lib/`, zero changes to `protection-service.ts`. `intelligence/`, `analytics/`, `governance/`, `payments/`, and `notifications/` remain not yet implemented.
+
+**EWP-005 scope note (2026-07-18):** The Analytics domain's three read routes (Section 2) are now built, reusing the `_lib` foundation unchanged -- zero new files under `_lib/`, zero changes to `analytics-service.ts`. `intelligence/`, `governance/`, `payments/`, and `notifications/` remain not yet implemented.
+
+**EWP-006 scope note (2026-07-18):** The Intelligence domain's single Badge Catalog route (Section 2) is now built, reusing the `_lib` foundation unchanged -- zero new files under `_lib/`, zero changes to `intelligence-service.ts`. This is deliberately named and scoped as the Badge Catalog only, not "the Intelligence API" -- `getReputationLeaderboard`, `awardBadge`/`revokeBadge`, the reputation recalculation functions, and `createPerformanceBonus` remain unexposed. `governance/`, `payments/`, and `notifications/` remain not yet implemented.
+
+**EWP-007 scope note (2026-07-18):** The Identity domain's single self-profile route (Section 2) is now built, reusing the `_lib` foundation unchanged -- zero new files under `_lib/`. `profile-service.ts` gained one new function, `getUserProfile()` (additive only, `getCreatorProfile()`/`getMemberProfile()` unchanged) -- a scoped, Founder/Chief-Architect-approved exception to Phase 5's freeze, per the Architecture Change Lifecycle, not a silent reopening. Identity was not in the charter's original Scope list (a drafting oversight, corrected 2026-07-18 per the Phase 6 API Foundation Coverage Review) -- see `phase-6-charter.md`'s EWP Approval Log and Deferred Capability Register. `governance/`, `payments/`, and `notifications/` remain not yet implemented, per the Deferred Capability Register.
 
 ---
 

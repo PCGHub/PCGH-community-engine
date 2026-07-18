@@ -135,6 +135,12 @@ When a defect spans multiple routes or domains, audit the actual failure surface
 
 **Source:** TD-005's resolution (Phase 6 EWP-002 hardening) — a full audit of every exception raised across two domains (Campaign, Intelligence) found one 100%-consistent admin-check convention and one 100%-consistent not-found convention, both handled by a single classifier added to `app/api/_lib/errors.ts`. No domain service was modified.
 
+### EPR-008 — RLS-Driven Partial Visibility Is a Valid API State
+
+A resource row may be visible while individual fields derived from differently protected underlying relations legitimately degrade to `null`, `0`, an empty collection, or an equivalent approved empty state, because each field is gated by its own RLS policy on its own source relation, not by one policy for the whole row. This is a correct, final response, not an incomplete one. API controllers must not attempt secondary queries, privileged fallbacks, `service_role` reads, or any other application-layer reconstruction to "complete" such a partially visible resource — doing so would bypass the exact authorization boundary AGR-005 already establishes as final, field by field, not just row by row.
+
+**Source:** `api.community_dashboard_view` (migration 008) and its four independently-gated source relations (`identity.member_communities`, `intelligence.community_reputation`, `protection.community_performance_history`, `analytics.community_analytics`) — behavior already implemented and RLS-locked since Phase 5, made explicit as a permanent rule during EWP-005's RLS-citation correction (Phase 6), per the Founder/Chief Architect's instruction that the underlying behavior, not a new architecture, was what needed recording.
+
 ---
 
 # Development Standards (DSR)
@@ -227,7 +233,7 @@ Hierarchy Level:
 Level 1 — Project Governance (Live)
 
 Rules recorded:
-7 AGR, 7 EPR, 5 DSR, 6 QGR (25 total)
+7 AGR, 8 EPR, 5 DSR, 6 QGR (26 total)
 
 Status:
 ACTIVE

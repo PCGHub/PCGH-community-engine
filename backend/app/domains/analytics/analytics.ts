@@ -10,6 +10,20 @@
  * discovery.discovery_opportunities and
  * protection.community_performance_history, not this domain). That is
  * a correct empty state, not missing data -- do not backfill it.
+ *
+ * Documentation consistency note (Phase 6 API Foundation Coverage
+ * Review, 2026-07-18): PlatformStatistics.avgMemberReputation/
+ * avgCreatorTrustScore and CommunityDashboard.reputationScore/
+ * activityScore/consistencyScore/trustScore are sourced from the same
+ * reputation-scoring tables (intelligence.member_reputation,
+ * creator_reputation, community_reputation) that
+ * ReputationLeaderboardEntry.isProvisional marks provisional pending
+ * ADR-015 (app/domains/intelligence/intelligence.ts). These fields
+ * carry the identical caveat even though this type has no
+ * isProvisional field of its own: the formulas behind every number
+ * here remain a documented placeholder, not final, pending Chief
+ * Architect definition. No response shape, RLS, or scoring behavior
+ * changed by this note -- it is a labeling correction only.
  */
 
 export interface PlatformStatistics {

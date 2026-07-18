@@ -174,23 +174,31 @@ See `docs/phase-5-completion.md` for the full Founder Acceptance Report and its 
 
 ## Phase 6 — API Foundation & Application Layer
 
-Status: 🚧 IN PROGRESS
+Status: 🔒 FROZEN — v0.6.0 (Founder/Chief Architect Final Acceptance, 2026-07-18)
 
 See `docs/phase-6-charter.md` for full detail (Mission, Principles, Scope, EWP Approval Log). Summary only, not duplicated here:
 
 - [x] EWP-001 — API Foundation (shared foundation: `app/api/_lib/`, `/api/v1/health`) — delivered 2026-07-17
 - [x] EWP-002 — Campaign API (8 routes) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. TD-005 (error classification) resolved; TD-006 opened as legitimate, unfixed open debt.
-- [ ] EWP-003 onward — Discovery, Protection, Intelligence, Analytics, Governance, Payments, Notifications — not yet scoped
+- [x] EWP-003 — Discovery API (2 read-only routes) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. Zero changes to `discovery-service.ts`, zero new `_lib` code. TD-006 out of scope (structurally unreachable — Discovery has no mutating service function).
+- [x] EWP-004 — Protection API (1 read-only route) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. Zero changes to `protection-service.ts`, zero new `_lib` code. Self-only RLS preserved exactly (no admin bypass); ADR-013 not decided, weakened, or bypassed (no cooldown field exposed).
+- [x] EWP-005 — Analytics API (3 read-only routes) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. Zero changes to `analytics-service.ts`, zero new `_lib` code, zero mutations. ADR-008 preserved. `/platform`'s 404 is an intentional non-disclosure semantic. An RLS-citation error in the original proposal (which policy governs `community_dashboard_view`'s visibility) was caught and corrected during implementation by tracing the actual migration SQL — no code change was required; corrected wording is authoritative in `docs/api-specification.md` Section 2.
+- [x] EWP-006 — Intelligence Badge Catalog API (1 read-only route) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. Deliberately named/scoped as the Badge Catalog only, not "the Intelligence API." Zero changes to `intelligence-service.ts`, zero new `_lib` code. `getReputationLeaderboard`, `awardBadge`/`revokeBadge`, the reputation recalculation functions, and `createPerformanceBonus` remain unexposed; ADR-014/ADR-015 verified unaffected by direct RLS inspection.
+- [x] Phase 6 API Foundation Coverage Review — completed and accepted, 2026-07-18. Produced a formal **Deferred Capability Register** (`docs/phase-6-charter.md`) covering Governance, Payment, Notification, Protection cooldown, and the remaining Intelligence capabilities, classified as Intentionally Deferred / Internal-Only / Requires ADR-Architecture Decision / Structurally Absent. Also found Identity Domain profile exposure was omitted from the charter's original Scope by drafting oversight — ruled **IN SCOPE** by Founder/Chief Architect decision. Also produced a documentation-only ADR-015 labeling correction (Analytics' reputation-derived fields now explicitly noted as provisional, matching Intelligence's `isProvisional` treatment — no behavior, RLS, or response-shape change).
+- [x] EWP-007 — Identity Profile API (1 self-only route) — **Founder/Chief Architect APPROVED AND FROZEN, 2026-07-18**. Identity resolved from `auth.session.userId` only, never a request parameter; no `[userId]` route. During scope refinement, an architectural naming gap was found and stopped-on rather than worked around: neither `getCreatorProfile()` nor `getMemberProfile()` accurately names an arbitrary caller (roles are independently assignable, migration 001) — resolved by a separately-approved, additive `getUserProfile()` function in `profile-service.ts` (a scoped, approved exception to Phase 5's freeze). No profile-update capability added.
+- [x] Phase 6 Chief Architect Final Acceptance Audit — **10/10, zero Major/Critical findings, Founder-approved 2026-07-18.** One cosmetic documentation correction made during the audit. Full report in `docs/phase-6-completion.md`.
+
+See `docs/phase-6-completion.md` for the full Founder Acceptance Report and Freeze Record (final score, version, commit hash, and both approval sign-offs).
 
 ---
 
 ## Project Status
 
-**Current Phase:** Phase 6 — API Foundation & Application Layer — 🚧 IN PROGRESS (EWP-002 frozen)
+**Current Phase:** Phase 6 — API Foundation & Application Layer — 🔒 FROZEN — v0.6.0 (Founder Acceptance, 2026-07-18)
 
-**Current Task:** Holding for EWP-003 scope proposal, per Founder/Chief Architect direction
+**Current Task:** Awaiting a dedicated Phase 7 Readiness & Direction Review (not yet performed) to determine the correct next architectural milestone. Phase 7 is deliberately **not** an automatic continuation of the Phase 6 domain/API EWP sequence, per explicit Founder/Chief Architect instruction.
 
-**Overall Progress:** 100% (Phase 1-5, frozen); Phase 6 EWP-001/EWP-002 delivered and frozen; 4 ADRs and TD-001/TD-002/TD-006 remain open as known, accepted, unresolved items
+**Overall Progress:** 100% (Phase 1-6, frozen); 4 ADRs and TD-001/TD-002/TD-006 remain open as known, accepted, unresolved items, formally tracked in the Phase 6 Deferred Capability Register (`docs/phase-6-charter.md`) alongside every intentionally unexposed capability
 
 **Last Updated:** 2026-07-18
 
@@ -220,4 +228,4 @@ See `docs/phase-6-charter.md` for full detail (Mission, Principles, Scope, EWP A
 
 ## Phase 6 — API Foundation & Application Layer
 
-██████████████░░░░░░  70% 🚧 IN PROGRESS — EWP-002 frozen
+████████████████████ 100% 🔒 FROZEN — v0.6.0
