@@ -1,0 +1,170 @@
+# PCGH local/CI Supabase stack configuration (EWP-008, Phase 7).
+#
+# Generated via `supabase init`, then manually reviewed and trimmed --
+# NOT the blind default output. Sections/services PCGH's approved
+# architecture does not use (Realtime, Storage, Edge Functions,
+# Supabase's own platform Analytics, external OAuth/SMS/third-party
+# auth, MFA, passkeys, OAuth server, experimental S3/OrioleDB) are
+# disabled or removed rather than left at their generated defaults --
+# see docs/backend-architecture.md and docs/authentication-architecture.md
+# for what this project actually uses.
+#
+# NOT linked to any remote project -- no [remote] section, no project
+# ref. This file describes the disposable local/CI stack only. The
+# real staging project (EWP-009) is a separate, later decision.
+#
+# For the full upstream reference (every possible key), see:
+# https://supabase.com/docs/guides/local-development/cli/config
+
+project_id = "PCGH-community-engine"
+
+[api]
+enabled = true
+port = 54321
+# PCGH's entire architecture is built on the `api` schema ("API Schema
+# First", CLAUDE.md/backend-architecture.md) plus `identity` (TD-001's
+# documented exception -- api.* has no identity/role-resolution
+# wrapper yet, so the Authentication Service calls identity.* directly
+# per authentication-architecture.md's own Dependencies section). The
+# generated default (["public", "graphql_public"]) is wrong for this
+# project -- PCGH never uses the `public` schema for anything -- and
+# was corrected here, not left as-is.
+schemas = ["api", "identity"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+port = 54322
+shadow_port = 54320
+health_timeout = "2m"
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+# Applies every file under supabase/migrations/ (001-009, plus any
+# later Phase 7 migration) on `supabase start` / `db reset`.
+enabled = true
+schema_paths = []
+
+[db.seed]
+# PCGH's seed data is migration 009 (009_create_seed_data.sql) --
+# not a separate seed.sql file. The generated default pointed at a
+# "./seed.sql" that does not exist in this repository; disabled
+# rather than left pointing at a nonexistent file.
+enabled = false
+
+[db.network_restrictions]
+enabled = false
+
+[realtime]
+# Not part of PCGH's approved architecture anywhere -- no service,
+# route, or dashboard in this codebase uses Realtime subscriptions.
+enabled = false
+
+[studio]
+# Kept enabled -- a genuinely useful local GUI for inspecting the
+# disposable stack during development; negligible cost, does not
+# affect CI (CI only runs `npm run test:live`, never opens Studio).
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[local_smtp]
+# Kept enabled -- inexpensive, and email/OTP-adjacent auth flows may
+# be relevant to future onboarding UI testing (EWP-011). Not wired to
+# any real provider; app/notifications/email-provider.ts remains
+# deliberately unconfigured per its own, separate, already-approved
+# design.
+enabled = true
+port = 54324
+
+[storage]
+# Storage Service (app/storage/client.ts) has zero consumers anywhere
+# in the codebase (Phase 7 Gap Analysis finding) -- no route, service,
+# or test uses file upload. Disabled rather than left on by default.
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Required: EWP-010 (ADR-018) tests real signups against this stack.
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 6
+password_requirements = ""
+
+[auth.rate_limit]
+email_sent = 2
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# No email-confirmation step required to test ADR-018's provisioning
+# trigger -- confirmation adds a manual/human step incompatible with
+# an automated live-test suite, and PCGH's own auth design does not
+# require it (authentication-architecture.md).
+enable_confirmations = false
+secure_password_change = false
+max_frequency = "1s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.sms]
+# PCGH's approved auth model is Supabase email/password + Bearer
+# token only (authentication-architecture.md) -- no SMS provider is
+# part of this project's architecture.
+enable_signup = false
+enable_confirmations = false
+template = "Your code is {{ `{{ .Code }}` }}"
+max_frequency = "5s"
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+otp_length = 6
+template = "Your code is {{ `{{ .Code }}` }}"
+max_frequency = "5s"
+
+# External OAuth providers, third-party auth (Firebase/Auth0/Clerk/AWS
+# Cognito), the OAuth server, passkeys/WebAuthn, and Web3/Solana
+# sign-in are all removed here, not merely left at their generated
+# `enabled = false` defaults -- none are part of PCGH's approved
+# authentication architecture (authentication-architecture.md
+# documents Supabase email/password + Bearer token only), and keeping
+# a wall of unused provider stubs would misrepresent what this
+# project actually supports to anyone reading this file.
+
+[edge_runtime]
+# PCGH's AI Service is a separate, independently deployed Python/
+# FastAPI application (ADR-016) -- not Supabase Edge Functions.
+# Nothing in this architecture uses Edge Functions.
+enabled = false
+
+[analytics]
+# Supabase's own internal platform analytics/logging service --
+# distinct from, and not to be confused with, PCGH's own `analytics`
+# business schema (migration 006). Not needed for local/CI testing.
+enabled = false

@@ -259,3 +259,50 @@ This is not an error-classification problem (TD-005's fix cannot touch it, since
 
 **Resolution condition:**
 Add an existence/status check (`if not found then raise exception ...`) to each of the three procedures, matching `distribute_campaign()`'s and `rotate_campaign()`'s existing pattern -- a new migration (never modifying 001-009), not an application-layer workaround. Out of scope for the TD-005 hardening pass, which was explicitly bounded to error *classification*, not to changing what SQL procedures do or don't raise.
+
+---
+
+## TD-007 — `next@14.2.35` carries several npm-audit-reported CVEs with no non-major remediation available
+
+**Logged:** 2026-07-20, during EWP-008 (Phase 7) Final Acceptance Hardening, per Founder/Chief Architect directive.
+
+**Where:**
+`backend/package.json` (`"next": "^14.2.5"`, resolved `14.2.35`); transitively, `eslint-config-next` → `@next/eslint-plugin-next` → `glob` (10.2.0–10.4.5); and `next`'s own internally bundled, nested copy of `postcss` (`node_modules/next/node_modules/postcss@8.4.31`, distinct from PCGH's own top-level `postcss@8.5.19`, which is unaffected).
+
+**What:**
+`npm audit` reports three findings:
+
+```text
+next (direct dependency) -- 14 bundled CVEs, worst severity high
+  (CVSS up to 7.5). Covers Image Optimizer DoS, RSC HTTP request
+  deserialization DoS, HTTP request smuggling in rewrites, unbounded
+  image-cache growth, multiple RSC/App-Router DoS variants,
+  Middleware/Proxy redirect cache poisoning, CSP-nonce XSS,
+  beforeInteractive script XSS, RSC cache poisoning, Image
+  Optimization API DoS, SSRF via WebSocket upgrades, RSC response
+  cache poisoning, Middleware/Proxy i18n bypass.
+
+glob (transitive, via eslint-config-next -> @next/eslint-plugin-next)
+  -- high severity, command injection via the glob CLI's -c/--cmd
+  flag with shell:true. Dev/lint tooling only.
+
+postcss (transitive, nested inside next's own bundle, NOT PCGH's
+  own top-level postcss dependency) -- moderate severity, XSS via
+  unescaped </style> in CSS stringification.
+```
+
+Verified directly, not assumed, before classifying:
+- `next@14.2.35` is confirmed the newest available `14.2.x` patch release (`npm view next versions` lists `14.2.26` through `14.2.35` as the full available range) -- **no non-breaking patch exists that resolves any of these**. The only remediation `npm audit fix` offers is `next@16.2.10`, a major version jump.
+- Direct grep of `app/` found **zero `next/image` usage** (rules out the Image Optimizer/cache-growth CVEs), **no `rewrites()` in `next.config.mjs`** (rules out the smuggling CVE), **no i18n configuration** (rules out the Middleware/i18n bypass CVE), **no `middleware.ts`** exists anywhere (rules out Middleware/Proxy-specific CVEs generally), **no WebSocket usage anywhere in `app/`** (rules out the SSRF-via-WebSocket-upgrade CVE).
+- The remaining CVEs (RSC HTTP deserialization DoS, RSC cache poisoning, CSP-nonce XSS, beforeInteractive-script XSS, generic RSC DoS) touch App Router/Server Component internals that PCGH's dashboards genuinely use (every dashboard is a Server Component, per Phase 5 Step 13's architecture) -- these remain **potentially relevant** and are not ruled out by usage inspection the way the others are.
+- `glob`'s vulnerable path is its **CLI** `-c`/`--cmd` flag; PCGH only consumes `glob` as a library dependency of ESLint tooling, never invokes its CLI. Not exploitable in PCGH's actual usage.
+- The nested `postcss` inside `next`'s own bundle is Next's internal build tooling; PCGH's Tailwind/PostCSS pipeline is 100% build-time against static, developer-authored class names -- never processes user-controlled CSS at runtime. Not exploitable in PCGH's actual usage.
+- **Current external exposure is zero**: no live, staging, or production deployment of this application exists anywhere (confirmed repeatedly across Phase 5 Step 15, Phase 6, and Phase 7's own charter) -- nothing is publicly reachable today.
+
+**Why it's debt:**
+A production-grade dependency (not a dev tool) has known CVEs with no available non-breaking fix. The risk is currently theoretical (nothing is deployed), but a major-version Next.js upgrade is a real, config-format-risking undertaking (App Router/Next.js major versions have historically changed configuration and routing behavior) that must not be forced through reflexively just to silence `npm audit`, and must not be deferred indefinitely once real deployment is on the table.
+
+**Resolution condition:**
+A scoped, separately-reviewed Next.js major-version upgrade (14 → 16 or whatever is current at the time), evaluated specifically for App Router/Server Component/config-format breaking changes against PCGH's actual four-dashboard, thin-API-layer usage -- not a blind `npm audit fix --force`. `eslint-config-next` resolves naturally alongside this, since it is version-locked to the `next` major it targets.
+
+**Resolution gate (binding, not merely a scheduling note):** this MUST be resolved before **unrestricted Public Production LIVE** (per `docs/phase-7-charter.md`'s Controlled-MVP-vs-Public-LIVE distinction). Before EWP-009 provisions any staging environment, EWP-009's own scope must explicitly assess whether that staging project will be publicly internet-reachable. If yes, EWP-009 must either (A) resolve this item's relevant risk before exposing staging, or (B) apply and explicitly document an access-control/isolation mitigation (e.g., IP allowlisting, a auth-gated preview deployment, VPN-only reachability) appropriate for a staging environment specifically -- not silently deployed as if this debt did not exist. Not resolving this item is not, by itself, a reason to delay a properly access-controlled staging environment; it is a reason to control access to it.

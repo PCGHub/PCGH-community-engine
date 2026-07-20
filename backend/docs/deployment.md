@@ -75,6 +75,26 @@ Feature flags: governance.feature_flags (migration 007/009) already
 
 ---
 
+## Local/CI Supabase Stack (EWP-008, Phase 7)
+
+Distinct from both the "Recommended deployment target" above (a future real hosting/production concern) and the future staging project (EWP-009): a disposable, real Postgres/Supabase Auth/PostgREST stack, run via the Supabase CLI (pinned exact version in `backend/package.json`'s `devDependencies`, invoked through `npx`/npm scripts so the committed lockfile controls the version identically in local development and CI -- no second, independent installation mechanism).
+
+```text
+npm run supabase:start   -- boots the stack, applies migrations
+                             001-009 (and any later Phase 7
+                             migration) from a clean state
+npm run test:live        -- runs backend/tests/live/ only, against
+                             whichever real Supabase target
+                             TEST_SUPABASE_* points at
+npm run supabase:stop    -- tears the stack down
+```
+
+Wired into `.github/workflows/ci.yml` as a separate `live-tests` job — a failure there fails the overall workflow, but it never affects the existing `backend` job's own fast, mocked-client signal. The job's own generated local-stack keys are captured fresh from `supabase start`'s output each run; no GitHub Actions secret is used by this job, and `tests/helpers/live-supabase-client.ts` fails closed (throws) if `TEST_SUPABASE_URL`/`TEST_SUPABASE_ANON_KEY`/`TEST_SUPABASE_SERVICE_ROLE_KEY` are ever unset — it never falls back to `NEXT_PUBLIC_SUPABASE_*`/`SUPABASE_SERVICE_ROLE_KEY`, specifically so `tests/live/` can never accidentally target a real staging or production project once one exists.
+
+**Verified live, per QGR-003 ("Verify, Don't Assume"), 2026-07-20:** after Docker Desktop (with WSL2) was installed, `supabase start` was executed against a genuinely clean stack. Image pulls from `public.ecr.aws` were slow and required many automatic retries on this network (large layers, particularly `postgres` at ~360MB, repeatedly truncated before succeeding on retry) — a real, reproducible network characteristic of this environment, not a Docker or configuration defect. All required images eventually downloaded and every container reported healthy. `npm run test:live` then passed 7/7 against the real stack, proving migrations 001–008 applied correctly (verified via `identity.users` directly and one representative `api.*` view per business schema — `information_schema` introspection was tried first and correctly rejected by PostgREST, confirming `config.toml`'s schema-exposure restriction works as reviewed). Migration 009 (seed data) is not separately live-tested (see `tests/live/infrastructure.test.ts`'s own comment for why an admin-gated view can't be used for this with a bare service-role client) but is proven by the stack booting without error. One real bug was found and fixed during this verification: `@supabase/supabase-js`'s `createClient()` always constructs a `RealtimeClient`, which requires a WebSocket implementation Node 20 lacks natively — fixed by adding `ws` as a devDependency and passing it as the `realtime.transport` option in `tests/helpers/live-supabase-client.ts`. The CI `live-tests` job's key-extraction step was also independently re-verified against real `supabase status -o json` output (its "Stopped services" notice prints to stderr, not stdout, so the existing plain-pipe extraction is unaffected).
+
+---
+
 ## service_role Client-Bundle Verification
 
 Executed against the actual `npm run build` output (`.next/static`), not assumed:

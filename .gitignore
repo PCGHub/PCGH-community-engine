@@ -1,3 +1,19 @@
+# Environment (EWP-008, 2026-07-18). Defense-in-depth at the
+# repository root -- backend/.gitignore already excludes
+# backend/.env/.env.local (the operationally relevant location, since
+# Next.js reads env files from backend/, not here); see
+# backend/tests/live/README.md for the full finding and correction.
+# backend/.env.example is a committed template and must remain
+# trackable -- the negation below is required, not decorative.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Supabase CLI local stack (EWP-008) -- generated, machine-local
+supabase/.branches/
+supabase/.temp/
+
 # OS
 .DS_Store
 Thumbs.db

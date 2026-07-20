@@ -35,3 +35,63 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  live-tests:
+    # EWP-008 (Phase 7). Separate job, deliberately: a failure here
+    # must fail the overall workflow (GitHub Actions' default for any
+    # job in this list, not overridden) but must never block on or
+    # affect the `backend` job's own fast, mocked-client signal.
+    # Prefers the same repository-pinned Supabase CLI mechanism as
+    # local development (the `supabase` devDependency in
+    # backend/package.json, invoked via npx/npm scripts so the
+    # lockfile controls the exact version) rather than a second,
+    # independent installation path such as supabase/setup-cli --
+    # one reproducible version, one mechanism, both locally and here.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # The local stack's own fixed default URL (Supabase CLI
+      # convention, not a secret). ANON_KEY/SERVICE_ROLE_KEY are
+      # deliberately not set here -- no GitHub Actions secret is used
+      # by this job at all -- they are captured fresh from `supabase
+      # start`'s own per-run output in the step below, since the
+      # local stack's keys are regenerated per run, not fixed values.
+      # tests/helpers/live-supabase-client.ts fails closed if any of
+      # the three are unset when npm run test:live executes.
+      TEST_SUPABASE_URL: http://127.0.0.1:54321
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase stack
+        # Applies every migration under supabase/migrations/ (001-009,
+        # plus any new Phase 7 migration) against a freshly-created
+        # local database as part of booting -- this is the "clean-
+        # stack migration application" verification for every CI run,
+        # not a separate step.
+        run: npx supabase start
+
+      - name: Export local stack keys
+        # `supabase start` prints the stack's own generated anon/
+        # service_role keys; captured here rather than hardcoded,
+        # since they are regenerated per-run, not fixed values.
+        run: |
+          echo "TEST_SUPABASE_ANON_KEY=$(npx supabase status -o json | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).ANON_KEY')" >> "$GITHUB_ENV"
+          echo "TEST_SUPABASE_SERVICE_ROLE_KEY=$(npx supabase status -o json | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+
+      - name: Run live tests
+        run: npm run test:live
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop

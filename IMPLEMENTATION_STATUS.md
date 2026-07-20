@@ -166,7 +166,7 @@ See `docs/phase-5-completion.md` for the full Founder Acceptance Report and its 
 **Conditions attached to the original "APPROVED WITH CONDITIONS" decision (2026-07-16), now resolved:**
 
 1. This document synchronized with actual Phase 4/5 completion — satisfied 2026-07-16.
-2. The four open ADRs (013, 014, 015, 017) given a resolution timeline — carried forward explicitly as Known Future Work (Phase 6), not silently dropped.
+2. The four open ADRs (013, 014, 015, 017) given a resolution timeline — carried forward explicitly as Known Future Work (Phase 6), not silently dropped. *(Historical count as of the 2026-07-16 Phase 5 decision. ADR-017 was subsequently resolved and ACCEPTED on 2026-07-18, per `docs/architecture-decisions.md` — see the Project Status block above for the current, authoritative open-ADR count of 3.)*
 
 **Freeze-specific resolution:** TD-003 (observability unwired) was resolved as the final Phase 5 implementation task; TD-004 was reclassified as intentional future infrastructure, not debt, per an evidence-based review against the approved roadmap. TD-001 and TD-002 remain as accepted, documented debt — see `docs/technical-debt.md`.
 
@@ -192,13 +192,28 @@ See `docs/phase-6-completion.md` for the full Founder Acceptance Report and Free
 
 ---
 
+## Phase 7 — Production Readiness & Controlled MVP Enablement
+
+Status: ✅ CHARTER APPROVED — LOCKED, 2026-07-18. **No EWP implementation has begun.**
+
+See `docs/phase-7-charter.md` for full detail (Mission, Scope, 15 EWPs EWP-008–EWP-022, Migration Strategy, Testing Architecture, Controlled-MVP-vs-Public-LIVE gate definitions). Summary only, not duplicated here:
+
+- [x] Phase 7 Readiness & LIVE Gap Analysis — complete, 2026-07-18.
+- [x] Pre-Charter Architecture Resolution — complete, 2026-07-18.
+- [x] ADR-018 (Identity Provisioning Mechanism) — ACCEPTED, 2026-07-18.
+- [x] ADR-017 (Complete Credit Lifecycle) — ACCEPTED, 2026-07-18.
+- [x] `docs/phase-7-charter.md` — drafted, validated, revised, and **APPROVED/LOCKED**, 2026-07-18. 12 of 15 EWPs classified Controlled-MVP-blocking (EWP-011/018/021 non-blocking but Production-Readiness-blocking).
+- [x] EWP-008 (Local/CI Live-Database Test Infrastructure) — **implemented and verified live, pending Founder/Chief Architect final review.** Docker Desktop + WSL2 installed; `supabase start` executed against a genuinely fresh stack (slow, network-retried image pulls, all succeeded); `supabase/config.toml` reviewed and trimmed (Realtime/Storage/Edge Functions/Supabase-platform-Analytics disabled — nothing in PCGH's architecture uses them; `schemas = ["api", "identity"]` corrected from the generated default). `npm run test:live` passes 7/7 against the real stack, proving migrations 001–008 applied (`identity.users` directly + one representative `api.*` view per business schema). Ordinary `npm test` independently re-verified unaffected: 37 suites / 131 tests, identical to the pre-EWP-008 baseline. `lint`/`typecheck`/`build` all clean; `service_role` confirmed absent from the built bundle. One real bug found and fixed during verification: `@supabase/supabase-js` always constructs a `RealtimeClient` requiring a WebSocket implementation Node 20 lacks natively — fixed via a new `ws` devDependency, used only inside `tests/helpers/live-supabase-client.ts`. The CI `live-tests` job's key-extraction step was independently confirmed correct against real `supabase status -o json` output.
+
+---
+
 ## Project Status
 
-**Current Phase:** Phase 6 — API Foundation & Application Layer — 🔒 FROZEN — v0.6.0 (Founder Acceptance, 2026-07-18)
+**Current Phase:** Phase 7 — Production Readiness & Controlled MVP Enablement — 🚧 CHARTERED, NOT YET IMPLEMENTED (charter locked 2026-07-18)
 
-**Current Task:** Awaiting a dedicated Phase 7 Readiness & Direction Review (not yet performed) to determine the correct next architectural milestone. Phase 7 is deliberately **not** an automatic continuation of the Phase 6 domain/API EWP sequence, per explicit Founder/Chief Architect instruction.
+**Current Task:** EWP-008 implemented and verified live against a real local Supabase stack; holding for Founder/Chief Architect review before EWP-009. No migrations, services, APIs, or business UI have been implemented for Phase 7 — EWP-008 is infrastructure/tooling only, per its own approved scope.
 
-**Overall Progress:** 100% (Phase 1-6, frozen); 4 ADRs and TD-001/TD-002/TD-006 remain open as known, accepted, unresolved items, formally tracked in the Phase 6 Deferred Capability Register (`docs/phase-6-charter.md`) alongside every intentionally unexposed capability
+**Overall Progress:** 100% (Phase 1-6, frozen); Phase 7 charter approved/locked, EWP-008 implemented and verified live. 3 ADRs (013, 014, 015) remain open; TD-001/TD-002/TD-006/TD-007 remain open (TD-007 — `next@14.2.35` CVEs with no non-major remediation, logged during EWP-008's dependency audit — see `docs/technical-debt.md`; binding resolution gate before unrestricted Public Production LIVE, with an explicit staging-access-control condition for EWP-009). Per `docs/phase-7-charter.md`'s informational (non-governance-metric) estimate: ~45–50% toward unrestricted public LIVE at the current state, projected ~60–65% after Controlled-MVP-blocking Phase 7 work, ~70–75% after all Phase 7 work including Production-Readiness items.
 
 **Last Updated:** 2026-07-18
 
@@ -229,3 +244,7 @@ See `docs/phase-6-completion.md` for the full Founder Acceptance Report and Free
 ## Phase 6 — API Foundation & Application Layer
 
 ████████████████████ 100% 🔒 FROZEN — v0.6.0
+
+## Phase 7 — Production Readiness & Controlled MVP Enablement
+
+░░░░░░░░░░░░░░░░░░░░   0% ✅ CHARTER APPROVED/LOCKED — implementation not started
