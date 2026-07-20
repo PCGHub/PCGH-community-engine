@@ -66,6 +66,8 @@ api-specification.md       (populated + APPROVED/LOCKED 2026-07-17
                            -- canonical API Layer Architecture,
                            EWP-001)
 phase-6-charter.md         (Phase 6 kickoff, 2026-07-17)
+phase-7-charter.md         (APPROVED/LOCKED 2026-07-18 -- Production
+                           Readiness & Controlled MVP Enablement)
 
 ------------------------------------------------
 
@@ -551,8 +553,9 @@ Hierarchy Level:
 
 Entries classified:
 Level 1: 8
-Level 2: 17 (3 placeholder — api-specification.md populated
-  2026-07-17; phase-6-charter.md added 2026-07-17)
+Level 2: 18 (3 placeholder — api-specification.md populated
+  2026-07-17; phase-6-charter.md added 2026-07-17; phase-7-charter.md
+  added and APPROVED/LOCKED 2026-07-18)
 Level 3: 9
 Level 4: 17 (2 placeholder)
 Level 5: 7 (1 placeholder)
