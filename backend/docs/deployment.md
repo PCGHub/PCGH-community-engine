@@ -163,6 +163,41 @@ One admin identity was bootstrapped as a documented, one-time exception — ADR-
 
 Per TD-007's binding resolution gate, EWP-009 assessed whether the staging project would be publicly internet-reachable. Finding: EWP-009's locked scope deploys no Next.js code anywhere — the Supabase project's own PostgREST/Auth API is inherently internet-reachable (a Supabase Cloud characteristic, not an EWP-009 decision), but TD-007's actual risk (bundled `next` CVEs) is not triggered by this EWP. Full reasoning recorded in `docs/technical-debt.md`'s TD-007 entry. This gate re-activates the moment a future EWP deploys the Next.js application somewhere reachable.
 
+## Migration 011 — Automatic Identity Provisioning (ADR-018, EWP-010)
+
+Closes the gap confirmed live while scoping this EWP: `backend/app/auth/session.ts`'s `resolveSession()` calls `identity.current_user_id()`, which returns `NULL` with no matching `identity.users` row — meaning, before this migration, no real Supabase Auth signup could ever successfully authenticate against the existing Authentication Service.
+
+`011_provision_identity_from_auth_signup.sql` (new, forward-only — migrations 001–010 untouched) adds `identity.handle_new_auth_user()` (`SECURITY DEFINER`, `search_path` pinned to `identity, pg_temp`) and an `AFTER INSERT` trigger (`on_auth_user_created`) on `auth.users`. In one transaction with signup, it provisions exactly one `identity.users` row and exactly one `identity.user_roles` row (`'member'`, hardcoded — no client-supplied metadata can ever produce `'creator'`/`'admin'`). `EXECUTE` is explicitly revoked from `PUBLIC` with **no** compensating grant to `anon`/`authenticated`/`service_role` — this function is trigger-only, and per Migration 010's own finding, trigger firing is gated by the firing role's privilege on the underlying table, not by `EXECUTE` on the trigger function itself.
+
+**Design details, precise:**
+```text
+username: read from signup metadata (raw_user_meta_data->>'username'),
+  never derived from email, per ADR-018. Missing/empty username
+  aborts the signup atomically -- EWP-011 owns collecting it in the
+  actual signup UX.
+user_code: 'USR-' + 16 uppercase hex characters derived from the
+  row's own newly-generated id -- 64 bits of entropy, explicitly
+  documented as probabilistically unique, not mathematically
+  guaranteed. The column's UNIQUE NOT NULL constraint is the actual
+  integrity safeguard.
+Idempotency: a pre-existing identity.users row for a given
+  auth_user_id is a safe no-op only if its email and username
+  exactly match what's being provisioned now; any mismatch aborts
+  loudly rather than silently reusing inconsistent state. This
+  branch (both halves) is verified by code review only -- no
+  legitimate Auth API path can cause the same auth_user_id to be
+  inserted twice, so it cannot be exercised by an automated live
+  test without weakening the zero-EXECUTE-grant design.
+```
+
+**Validated locally first:** `supabase db reset` applying 001–011 fresh, then `npm run test:live` — 15/15 passing (7 existing infrastructure + 4 existing Migration 010 + 4 new: successful provisioning, self-contained username-collision atomicity, missing-username atomicity, role-escalation-attempt rejection). `lint`/`typecheck`/`npm test` (37/131)/`build` all unaffected. Deployed to staging via Founder-executed `db push`; independently re-verified: migration history 001–011 match, the deployed function definition and trigger binding are identical to the reviewed source, and `EXECUTE` privileges confirmed `anon=false/authenticated=false/service_role=false` for the new function, with the other three `identity` routines unchanged.
+
+**Real controlled staging signup (Admin API, `email_confirm: true`):** proved the full chain — one correctly-linked `identity.users` row (`user_code` matching `USR-[0-9A-F]{16}`, username/email preserved), exactly one `'member'` role row, `status` at its schema default (`'pending'`, since Migration 011 never sets it). `email_verified` returned `false` despite the API response showing `email_confirmed_at` populated — traced and confirmed as a real instance of **TD-009** (`docs/technical-debt.md`), not a new defect: Supabase's Auth service appears to write the confirmation timestamp as a step distinct from the base insert, which this `AFTER INSERT`-only trigger never observes. Deliberately not fixed here — ADR-018 describes only an `AFTER INSERT` trigger; synchronization would be new architecture requiring its own ADR.
+
+**Cleanup verification note, disclosed rather than smoothed over:** an initial `DELETE` (without `RETURNING`) against the test `identity.users` row produced an ambiguous "Success. No rows returned" result that was mistakenly read as proof of deletion — the row had not actually been removed, and its `NO ACTION` foreign key to `auth.users` was still blocking the subsequent Auth-side user deletion as a direct, diagnosable consequence. Corrected via `DELETE ... RETURNING` (positively confirming which row was removed) plus an independent read-only count check, before the Auth-side test user was removed through Supabase's supported deletion mechanism (never raw SQL against `auth.users`). Final residue confirmed zero across `identity.users`, `identity.user_roles`, and `auth.users`.
+
+The existing bootstrapped `pcgh_admin` identity (EWP-009) is unaffected by this migration — `AFTER INSERT` triggers never fire retroactively for rows inserted before the trigger existed.
+
 ---
 
 ## service_role Client-Bundle Verification

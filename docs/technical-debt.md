@@ -326,3 +326,25 @@ Exactly one control -- `anon` lacking `USAGE` on schema `identity` -- was the on
 
 **Resolution:**
 Migration 010 explicitly revokes `PUBLIC` `EXECUTE` on all three and explicitly re-grants `EXECUTE` to `authenticated` and `service_role` only, matching `api`'s already-established explicit pattern. No function body, `SECURITY DEFINER` property, `search_path`, trigger binding, RLS policy, or table grant was touched. Verified before implementation: `authenticated` and `service_role` needed to retain exactly the access they already had (`current_user_id()`/`is_admin()` are referenced 138 combined times across every RLS policy in migrations 001-008, and called directly by `backend/app/auth/session.ts`/`roles.ts` per TD-001); `set_updated_at()` confirmed trigger-only via a repository-wide grep (zero application-code references). Verified after implementation, both locally and on staging: `backend/tests/live/identity-routine-privileges.test.ts` (anon rejected on both RPCs, `service_role` still permitted, the `updated_at` trigger still fires correctly on `UPDATE`); a `has_function_privilege()`/`proacl` re-run against staging confirmed `anon_execute = false`, `authenticated_execute = true`, `service_role_execute = true`, an explicit non-`NULL` ACL for all three, and all 15 `api` routines unchanged.
+
+---
+
+## TD-009 — `identity.users.email_verified` is signup-time-only, not synchronized with later `auth.users` confirmation changes
+
+**Logged:** 2026-07-22, during EWP-010 (Phase 7) staging live-verification of Migration 011.
+
+**Where:**
+`identity.handle_new_auth_user()` (`011_provision_identity_from_auth_signup.sql`), specifically its `email_verified` derivation.
+
+**What:**
+`identity.users.email_verified` is set exactly once, at provisioning time, from `NEW.email_confirmed_at is not null` -- a snapshot of the `auth.users` row at the exact instant of its `INSERT`. If a user's email-confirmation state changes afterward (an unconfirmed user later confirming, or -- as directly observed during EWP-010's staging validation -- even an Admin-API-created user requested with `email_confirm: true`), `identity.users.email_verified` does not update and becomes stale, because this trigger is `AFTER INSERT` only and never observes a subsequent `auth.users` `UPDATE`.
+
+Confirmed empirically, not just theoretically: a real Admin-API-created staging test user, requested with `email_confirm: true` and whose creation response showed `email_confirmed_at` populated, nonetheless provisioned with `identity.users.email_verified = false`. This indicates Supabase's Auth service writes the confirmation timestamp as an operation distinct from the base row insert -- meaning this staleness risk is not a rare "days-later" edge case, but plausible on effectively any signup path where confirmation isn't written in the exact same `INSERT` statement.
+
+**Why it's debt:**
+No code in this codebase currently reads `email_verified` (confirmed via repository-wide grep before Migration 011 was implemented), so the field is presently inert -- but it will silently mislead any future consumer that trusts it as live confirmation status.
+
+**Resolution condition:**
+ADR-018 describes only an `AFTER INSERT` trigger on `auth.users`; it does not decide an ongoing synchronization mechanism. Resolving this requires either (a) a new ADR (or an ADR-018 amendment) approving an additional, narrowly-scoped `AFTER UPDATE` trigger on `auth.users` watching for `email_confirmed_at` transitioning from `NULL` to non-`NULL`, or (b) an explicit, documented decision that `identity.users.email_verified` means "verified at signup time only," and any future consumer needing live-accurate confirmation status must read `auth.users.email_confirmed_at` directly rather than trust this column. Not resolved inside EWP-010, deliberately -- per Founder/Chief Architect decision, adding synchronization logic would expand ADR-018's accepted scope without going through the Architecture Change Lifecycle.
+
+**Related, not itself a defect:** `identity.users.status` remains at its schema default (`'pending'`) for every newly-provisioned identity, since Migration 011 never sets it -- `status` is a broader account-lifecycle field (`active`/`pending`/`suspended`/`deleted`) ADR-018 never addresses. Any future resolution of this item should likely treat `status`'s `pending`->`active` transition as part of the same account-activation-lifecycle design, rather than solving `email_verified` in isolation.
