@@ -22,7 +22,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { checkUsernameAvailability, isValidUsernameShape } from '../services/auth/auth-service';
+import { checkUsernameAvailability, isValidUsernameShape, type UsernameAvailability } from '../services/auth/auth-service';
 import { getSupabaseBrowserClient } from '../config/supabase-browser';
 
 export type UsernameAvailabilityState = 'idle' | 'checking' | 'available' | 'taken';
@@ -49,7 +49,16 @@ export function useUsernameAvailability(username: string): {
     const myGeneration = ++generationRef.current;
     setAvailability('checking');
 
-    const result = await checkUsernameAvailability(getSupabaseBrowserClient(), candidateUsername);
+    // Any synchronous throw (e.g. client initialization) or rejected
+    // promise (network/RPC failure) must resolve to 'unknown' rather
+    // than leaving availability stuck at 'checking' forever -- an
+    // advisory-check failure is never treated as taken or available.
+    let result: UsernameAvailability;
+    try {
+      result = await checkUsernameAvailability(getSupabaseBrowserClient(), candidateUsername);
+    } catch {
+      result = 'unknown';
+    }
 
     if (!mountedRef.current) return; // unmounted -- never update state
     if (generationRef.current !== myGeneration) return; // superseded by a newer check

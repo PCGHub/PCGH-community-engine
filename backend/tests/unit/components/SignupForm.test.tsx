@@ -201,6 +201,24 @@ describe('SignupForm', () => {
       expect(screen.queryByText('Username already taken')).not.toBeInTheDocument();
     });
 
+    it('exits "checking" safely when the availability check throws or rejects, rather than hanging forever', async () => {
+      mockedCheckUsernameAvailability.mockImplementationOnce(
+        () => Promise.reject(new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL')),
+      );
+
+      renderForm();
+      const usernameField = screen.getByLabelText('Username');
+
+      fireEvent.change(usernameField, { target: { value: 'alice' } });
+      await act(async () => {
+        jest.advanceTimersByTime(450);
+      });
+
+      expect(screen.queryByText('Checking availability...')).not.toBeInTheDocument();
+      expect(screen.queryByText('Username available')).not.toBeInTheDocument();
+      expect(screen.queryByText('Username already taken')).not.toBeInTheDocument();
+    });
+
     it('does not call the RPC for locally invalid input', async () => {
       renderForm();
       const usernameField = screen.getByLabelText('Username');
