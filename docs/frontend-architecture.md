@@ -443,6 +443,22 @@ Error mapping: app/services/auth/auth-service.ts's mapAuthError()
   back to narrow substring matching only for
   identity.handle_new_auth_user()'s own custom exception text. Raw
   Postgres/GoTrue error text is never shown to the user.
+
+Email-confirmation redirect: performSignup() accepts an optional
+  emailRedirectTo parameter, passed through to client.auth.signUp()'s
+  options.emailRedirectTo. Deliberately NOT computed inside
+  auth-service.ts itself via window.location.origin -- that module is
+  also called directly by tests/live/identity-provisioning.test.ts in
+  a plain Node environment with no window global, so a hardcoded
+  browser API there would break live tests. Instead, SignupForm.tsx
+  (browser-only, 'use client') computes `${window.location.origin}/login`
+  and passes it down; tests/live/ callers omit it, so Supabase falls
+  back to its configured Site URL. This mechanism depends entirely on
+  the target origin being present in the Supabase project's Auth
+  Redirect URLs allowlist -- an origin not listed there will still
+  fail even though the application code is correct, since Supabase
+  Auth rejects unlisted redirect targets independently of what the
+  application requests.
 ```
 
 ---
