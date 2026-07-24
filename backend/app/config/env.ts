@@ -31,12 +31,32 @@ function requireEnv(name: string): string {
 }
 
 /**
+ * Validates an already-extracted public value. Deliberately does NOT
+ * take the variable name and look it up dynamically
+ * (process.env[name]) -- Next.js's build-time client-bundle inlining
+ * only recognizes static, literal `process.env.NEXT_PUBLIC_X`
+ * references (https://nextjs.org/docs/14/app/building-your-application/configuring/environment-variables).
+ * A dynamic lookup is never inlined and silently resolves to
+ * undefined in the browser, regardless of what's configured in the
+ * hosting provider. Every NEXT_PUBLIC_ reference in getPublicEnv()
+ * below must therefore be written out literally at its call site --
+ * do not "simplify" this back into a loop or a shared dynamic
+ * accessor like requireEnv(name) above.
+ */
+function requirePublicValue(name: string, value: string | undefined): string {
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+/**
  * Values safe to use in client-reachable code.
  */
 export function getPublicEnv(): PublicEnv {
   return {
-    supabaseUrl: requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
-    supabaseAnonKey: requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+    supabaseUrl: requirePublicValue('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL),
+    supabaseAnonKey: requirePublicValue('NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
   };
 }
 

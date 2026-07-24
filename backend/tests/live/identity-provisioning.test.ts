@@ -4,6 +4,22 @@
  * fail-atomically cases (missing username, username collision), and
  * the role-escalation-prevention invariant.
  *
+ * The happy-path test (below) calls performSignup() -- the exact
+ * shared operation SignupForm itself calls (EWP-011,
+ * app/services/auth/auth-service.ts) -- rather than a raw inline
+ * anon.auth.signUp(), so this proves the same code path the UI uses,
+ * not a hand-duplicated equivalent. The three failure-mode tests
+ * deliberately keep calling anon.auth.signUp() directly instead:
+ * they exist to verify identity.handle_new_auth_user()'s own
+ * database-level guarantees (which must hold regardless of what any
+ * particular client does), and routing them through performSignup()
+ * would change what's being tested -- e.g. the "no username
+ * supplied" case would be caught by performSignup()'s own local
+ * isValidUsernameShape() check before ever reaching the server,
+ * which is valuable but is a DIFFERENT guarantee (client-side
+ * validation) from the one this specific test verifies (the
+ * trigger's own exception).
+ *
  * Not covered here: the mismatched-pre-existing-row idempotency
  * branch cannot be exercised through the public Auth API surface
  * without either forcing a second auth.users INSERT for the same id
@@ -22,6 +38,7 @@
  */
 
 import { createLiveAnonClient, createLiveServiceClient } from '../helpers/live-supabase-client';
+import { performSignup } from '../../app/services/auth/auth-service';
 
 const TEST_PASSWORD = 'Ewp010TestPassword!23';
 
@@ -45,21 +62,20 @@ async function cleanupIdentity(
 }
 
 describe('Migration 011: automatic identity provisioning (ADR-018)', () => {
-  it('provisions identity.users and identity.user_roles on a real signup', async () => {
+  it('provisions identity.users and identity.user_roles on a real signup (via the shared performSignup operation)', async () => {
     const anon = createLiveAnonClient();
     const service = createLiveServiceClient();
     const suffix = Date.now();
     const email = `ewp010-signup-${suffix}@example.test`;
     const username = `ewp010user${suffix}`;
 
-    const { data: signUpData, error: signUpError } = await anon.auth.signUp({
-      email,
-      password: TEST_PASSWORD,
-      options: { data: { username } },
-    });
+    const result = await performSignup(anon, { email, password: TEST_PASSWORD, username });
 
-    expect(signUpError).toBeNull();
-    const authUserId = signUpData.user!.id;
+    expect(result.status).toBe('signed_in');
+    if (result.status !== 'signed_in') return;
+
+    const { data: authUsers } = await service.auth.admin.listUsers();
+    const authUserId = authUsers.users.find((u) => u.email === email)!.id;
 
     const { data: identityRow, error: identityError } = await service
       .schema('identity')

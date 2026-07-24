@@ -393,6 +393,76 @@ CLAUDE.md ("Frontend")
 
 ---
 
+# Signup/Login Onboarding UI (EWP-011)
+
+Extends this document per the charter's own "Documentation sync" field for EWP-011. Does not redefine anything in Sections 1-9 above; adds the first genuinely interactive surface this frontend has had.
+
+```text
+Route group: app/(auth)/ -- a minimal, chrome-free layout (no
+  DashboardShell nav), per Section 1's own forward-reference to a
+  future login page bypassing dashboard chrome. Contains
+  (auth)/signup/page.tsx and (auth)/login/page.tsx, both Server
+  Component wrappers rendering a Client Component form.
+
+First Client Components in this codebase: app/components/
+  SignupForm.tsx and LoginForm.tsx ('use client'). Every dashboard
+  built under Phase 5 Step 13 is read-only and needed none, per
+  Section 8's existing rule ("a component becomes a Client Component
+  only when it needs browser-only behavior") -- these are the first
+  to need it.
+
+Browser Supabase client: app/config/supabase-browser.ts, using
+  @supabase/ssr's createBrowserClient. This is what makes
+  app/config/supabase-server.ts's existing getServerComponentAccessToken()
+  functionally meaningful for the first time -- previously nothing
+  ever wrote a session cookie for it to read.
+
+Operations layer: app/services/auth/auth-service.ts (performSignup,
+  performLogin, checkUsernameAvailability), following the existing
+  services/<domain>/<domain>-service.ts convention (Section 5) --
+  distinct from app/auth/'s server-side, Bearer-token Authentication
+  Service, which this does not use or replace.
+
+Redirect convention: both signup (only once a real session is
+  returned) and login redirect to /community -- reuses an existing
+  dashboard's already-correct RLS-driven empty-state handling rather
+  than inventing a new destination. If signup succeeds but no
+  session is returned (email confirmation required), a neutral
+  "check your email" message is shown instead -- never treated as a
+  logged-in state.
+
+Username availability: advisory only (api.is_username_available(),
+  012_add_username_availability_check.sql) -- debounced (~450ms) on
+  change, with an immediate check on blur. Renders exactly one of
+  idle / checking / available / taken; a network/RPC failure always
+  resolves to idle, never "taken." The database's UNIQUE constraint
+  remains the sole final authority.
+
+Error mapping: app/services/auth/auth-service.ts's mapAuthError()
+  prefers @supabase/supabase-js's structured AuthError.code, falling
+  back to narrow substring matching only for
+  identity.handle_new_auth_user()'s own custom exception text. Raw
+  Postgres/GoTrue error text is never shown to the user.
+
+Email-confirmation redirect: performSignup() accepts an optional
+  emailRedirectTo parameter, passed through to client.auth.signUp()'s
+  options.emailRedirectTo. Deliberately NOT computed inside
+  auth-service.ts itself via window.location.origin -- that module is
+  also called directly by tests/live/identity-provisioning.test.ts in
+  a plain Node environment with no window global, so a hardcoded
+  browser API there would break live tests. Instead, SignupForm.tsx
+  (browser-only, 'use client') computes `${window.location.origin}/login`
+  and passes it down; tests/live/ callers omit it, so Supabase falls
+  back to its configured Site URL. This mechanism depends entirely on
+  the target origin being present in the Supabase project's Auth
+  Redirect URLs allowlist -- an origin not listed there will still
+  fail even though the application code is correct, since Supabase
+  Auth rejects unlisted redirect targets independently of what the
+  application requests.
+```
+
+---
+
 # Implementation Rules
 
 ```text
