@@ -60,7 +60,12 @@ describe('SignupForm', () => {
 
     expect(mockedPerformSignup).toHaveBeenCalledWith(
       {},
-      { email: 'alice@example.test', password: 'Password123!', username: 'alice' },
+      {
+        email: 'alice@example.test',
+        password: 'Password123!',
+        username: 'alice',
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
     );
     expect(mockPush).toHaveBeenCalledWith('/community');
   });

@@ -40,7 +40,7 @@ export function isValidUsernameShape(username: string): boolean {
 
 export async function performSignup(
   client: SupabaseClient,
-  params: { email: string; password: string; username: string },
+  params: { email: string; password: string; username: string; emailRedirectTo?: string },
 ): Promise<SignupOutcome> {
   if (!isValidUsernameShape(params.username)) {
     // Local validation catches this before
@@ -53,7 +53,17 @@ export async function performSignup(
   const { data, error } = await client.auth.signUp({
     email: params.email,
     password: params.password,
-    options: { data: { username: params.username } },
+    options: {
+      data: { username: params.username },
+      // Deliberately NOT computed here via window.location.origin --
+      // this module must stay callable from a plain Node environment
+      // (tests/live/, which has no `window` global at all), so the
+      // caller (a real 'use client' component) is responsible for
+      // computing and passing the current origin. When omitted (as
+      // tests/live/'s direct calls do), Supabase falls back to its
+      // configured Site URL, exactly as before this patch.
+      ...(params.emailRedirectTo ? { emailRedirectTo: params.emailRedirectTo } : {}),
+    },
   });
 
   if (error) {

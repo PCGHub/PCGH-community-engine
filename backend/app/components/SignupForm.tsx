@@ -48,7 +48,12 @@ export function SignupForm() {
     setSubmitting(true);
     setError(undefined);
 
-    const result = await performSignup(getSupabaseBrowserClient(), { email, password, username });
+    const result = await performSignup(getSupabaseBrowserClient(), {
+      email,
+      password,
+      username,
+      emailRedirectTo: `${window.location.origin}/login`,
+    });
 
     setSubmitting(false);
     if (result.status === 'error') {
